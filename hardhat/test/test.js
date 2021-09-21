@@ -25,4 +25,15 @@ describe("Knights", function () {
     await mintTx.wait();
     expect(await knightContract.ownerOf(1)).to.equal(signers[2].address);
   });
+
+  it("Should have stored stats on chain for new Knight NFT (Luck=18)", async function () {
+    const firstKnightAttributes = await knightContract.getKnightAttributes(1);
+    // Luck should equal 18
+    expect(firstKnightAttributes[6]).to.equal(18);
+  });
+
+  it("Should have stored name on chain for new Knight NFT (Rory the Rogue)", async function () {
+    const firstKnightName = await knightContract.getKnightName(1);
+    expect(firstKnightName).to.equal("Rory the Rogue");
+  });
 });
