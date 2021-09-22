@@ -26,6 +26,7 @@ contract Knight is AccessControl, ERC721Enumerable, ERC721Pausable, IKnight {
         address _to,
         uint8[7] memory _attributes,
         string memory _knightName,
+        bytes1 _knightGender,
         string memory _tokenUri
     ) external onlyRole(MINTER_ROLE) {
         // Will start with tokenId 1 rather than 0
@@ -36,6 +37,7 @@ contract Knight is AccessControl, ERC721Enumerable, ERC721Pausable, IKnight {
         // Add Knight on chain
         knightDetails[knightId] = KnightDetails(
             _knightName,
+            _knightGender,
             KnightAttributes(
                 _attributes[0],
                 _attributes[1],
@@ -45,13 +47,18 @@ contract Knight is AccessControl, ERC721Enumerable, ERC721Pausable, IKnight {
                 _attributes[5],
                 _attributes[6]
             ),
-            KnightStats(0,0,0,0)
+            KnightRecord(0,0,0,0)
         );
     }
 
     function getKnightName(uint256 _tokenId) external view returns(string memory) {
         require(_exists(_tokenId));
         return knightDetails[_tokenId].name;
+    }
+
+    function getKnightGender(uint256 _tokenId) external view returns(bytes1) {
+        require(_exists(_tokenId));
+        return knightDetails[_tokenId].gender;
     }
 
     function getKnightAttributes(uint256 _tokenId) external view returns(IKnight.KnightAttributes memory) {

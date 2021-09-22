@@ -20,20 +20,27 @@ describe("Knights", function () {
         signers[2].address,
         [18, 18, 18, 18, 18, 18, 18],
         "Rory the Rogue",
+        "0x" + "M".charCodeAt(0).toString(16),
         "test_ipfs_url"
     );
     await mintTx.wait();
     expect(await knightContract.ownerOf(1)).to.equal(signers[2].address);
   });
 
-  it("Should have stored stats on chain for new Knight NFT (Luck=18)", async function () {
+  it("Should store attributes on chain for new Knight NFT", async function () {
     const firstKnightAttributes = await knightContract.getKnightAttributes(1);
-    // Luck should equal 18
-    expect(firstKnightAttributes[6]).to.equal(18);
+    for (let i = 0;i < 6;i++) {
+      expect(firstKnightAttributes[i]).to.equal(18);
+    }
   });
 
-  it("Should have stored name on chain for new Knight NFT (Rory the Rogue)", async function () {
+  it("Should store name on chain for new Knight NFT", async function () {
     const firstKnightName = await knightContract.getKnightName(1);
     expect(firstKnightName).to.equal("Rory the Rogue");
+  });
+
+  it("Should store gender on chain for new Knight NFT", async function () {
+    const firstKnightGender = await knightContract.getKnightGender(1);
+    expect(firstKnightGender).to.equal("0x" + "M".charCodeAt(0).toString(16));
   });
 });

@@ -15,16 +15,18 @@ interface IKnight is IERC721Enumerable {
         uint8 luck;
     }
 
-    struct KnightStats {
+    struct KnightRecord {
         uint32 wins;
         uint32 losses;
-        uint32 kills;
-        uint32 tournamentVictories;
+        uint16 kills;
+        uint16 tournamentVictories;
     }
+
 
     struct KnightDetails {
         string name;
+        bytes1 gender;
         KnightAttributes attributes;
-        KnightStats stats;
+        KnightRecord record;
     }
 }
