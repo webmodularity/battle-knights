@@ -12,6 +12,13 @@ describe("Battle Knights", function () {
     nameGeneratorContract = await nameGeneratorFactory.deploy();
     // Wait for contract to deploy
     await nameGeneratorContract.deployed();
+    // Set some test names and titles
+    const maleNamesTx = await nameGeneratorContract.addData('maleNames', ["Rory", "Dan", "Cody", "Phil", "Alvaro"]);
+    await maleNamesTx.wait();
+    const femaleNamesTx = await nameGeneratorContract.addData('femaleNames', ["Colette", "Celeste", "Ellie", "Eva"]);
+    await femaleNamesTx.wait();
+    const titlesTx = await nameGeneratorContract.addData('titles', ["the Rogue", "the Patient", "the Viking", "the Crusher"]);
+    await titlesTx.wait();
     // Deploy Battle contract
     const battleFactory = await ethers.getContractFactory("Battle");
     battleContract = await battleFactory.deploy();
@@ -32,7 +39,8 @@ describe("Battle Knights", function () {
 
   describe("Character Name Generator", function () {
     it("Should generate random name", async function () {
-      expect(await nameGeneratorContract.getRandomName("F")).to.equal("Female name");
+      const randomName = await nameGeneratorContract.getRandomName("M", Math.floor(Math.random() * 1000));
+      expect(randomName).to.not.be.empty;
     });
   });
 

@@ -3,6 +3,6 @@ pragma solidity ^0.8.5;
 
 interface ICharacterNameGenerator {
 
-    function getRandomName(string calldata gender) external view returns (string memory);
+    function getRandomName(string calldata gender, uint seed) external view returns (string memory);
 
 }
