@@ -8,62 +8,92 @@ import "@openzeppelin/contracts/token/ERC721/extensions/ERC721Pausable.sol";
 import "@openzeppelin/contracts/access/AccessControl.sol";
 import "@openzeppelin/contracts/utils/Counters.sol";
 import "./IKnight.sol";
+import "./IBattle.sol";
+import "./ICharacterNameGenerator.sol";
 
 contract Knight is AccessControl, ERC721Enumerable, ERC721Pausable, IKnight {
     using Counters for Counters.Counter;
     Counters.Counter private _tokenIds;
+    Counters.Counter private _seasonIds;
+    Counters.Counter private _battleIds;
+    Counters.Counter private _fightIds;
     bytes32 public constant MINTER_ROLE = keccak256("MINTER_ROLE");
+    bytes32 public constant SYNCER_ROLE = keccak256("SYNCER_ROLE");
+    // Store Knight Metadata on chain
+    mapping(uint256 => IKnight.KnightDetails) private knightDetails;
+    // Store current Battle Contract
+    IBattle private battleContract;
+    // Store current Character Name Generator Contract
+    ICharacterNameGenerator private nameGeneratorContract;
 
-    mapping(uint256 => IKnight.KnightDetails) internal knightDetails;
-
-    constructor() ERC721("Battle Knight Test", "BNITE-TEST") {
-        // Grant the contract deployer the default admin role: it will be able
-        // to grant and revoke any roles
+    constructor() ERC721("Battle Knight Test", "KNGHT-TEST") {
+        // Grant the contract deployer the default admin role: it will be able to grant and revoke any roles
         _setupRole(DEFAULT_ADMIN_ROLE, msg.sender);
     }
 
+    function changeNameGeneratorContract(address nameGeneratorContractAddress) external onlyRole(DEFAULT_ADMIN_ROLE) {
+        nameGeneratorContract = ICharacterNameGenerator(nameGeneratorContractAddress);
+    }
+
+    function changeBattleContract(address battleContractAddress) external onlyRole(DEFAULT_ADMIN_ROLE) {
+        battleContract = IBattle(battleContractAddress);
+    }
+
+    function addMinterRole(address account_) external onlyRole(DEFAULT_ADMIN_ROLE) {
+        grantRole(MINTER_ROLE, account_);
+    }
+
+    function removeMinterRole(address account_) external onlyRole(DEFAULT_ADMIN_ROLE) {
+        revokeRole(MINTER_ROLE, account_);
+    }
+
+    function getKnightName(uint256 tokenId) external view returns(string memory) {
+        require(_exists(tokenId));
+        return knightDetails[tokenId].name;
+    }
+
+    function getKnightGender(uint256 tokenId) external view returns(bytes1) {
+        require(_exists(tokenId));
+        return knightDetails[tokenId].gender;
+    }
+
+    function getKnightAttributes(uint256 tokenId) external view returns(IKnight.KnightAttributes memory) {
+        require(_exists(tokenId));
+        return knightDetails[tokenId].attributes;
+    }
+
+    function getKnightRecord(uint256 tokenId) external view returns(IKnight.KnightRecord memory) {
+        require(_exists(tokenId));
+        return knightDetails[tokenId].record;
+    }
+
     function mintSpecial(
-        address _to,
-        uint8[7] memory _attributes,
-        string memory _knightName,
-        bytes1 _knightGender,
-        string memory _tokenUri
+        address to,
+        uint8[7] calldata attributes,
+        string calldata knightName,
+        bytes1 knightGender,
+        string calldata tokenUri
     ) external onlyRole(MINTER_ROLE) {
-        // Will start with tokenId 1 rather than 0
+        // Will start with tokenId 1
         _tokenIds.increment();
         uint knightId = _tokenIds.current();
         // Mint Knight
-        _mint(_to, knightId);
+        _mint(to, knightId);
         // Add Knight on chain
         knightDetails[knightId] = KnightDetails(
-            _knightName,
-            _knightGender,
+            knightName,
+            knightGender,
             KnightAttributes(
-                _attributes[0],
-                _attributes[1],
-                _attributes[2],
-                _attributes[3],
-                _attributes[4],
-                _attributes[5],
-                _attributes[6]
+                attributes[0],
+                attributes[1],
+                attributes[2],
+                attributes[3],
+                attributes[4],
+                attributes[5],
+                attributes[6]
             ),
             KnightRecord(0,0,0,0)
         );
-    }
-
-    function getKnightName(uint256 _tokenId) external view returns(string memory) {
-        require(_exists(_tokenId));
-        return knightDetails[_tokenId].name;
-    }
-
-    function getKnightGender(uint256 _tokenId) external view returns(bytes1) {
-        require(_exists(_tokenId));
-        return knightDetails[_tokenId].gender;
-    }
-
-    function getKnightAttributes(uint256 _tokenId) external view returns(IKnight.KnightAttributes memory) {
-        require(_exists(_tokenId));
-        return knightDetails[_tokenId].attributes;
     }
 
     function _beforeTokenTransfer(
@@ -87,11 +117,4 @@ contract Knight is AccessControl, ERC721Enumerable, ERC721Pausable, IKnight {
         return super.supportsInterface(interfaceId);
     }
 
-    function addMinterRole(address _account) external onlyRole(DEFAULT_ADMIN_ROLE) {
-        grantRole(MINTER_ROLE, _account);
-    }
-
-    function removeMinterRole(address _account) external onlyRole(DEFAULT_ADMIN_ROLE) {
-        revokeRole(MINTER_ROLE, _account);
-    }
 }
