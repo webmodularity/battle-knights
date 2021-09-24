@@ -84,11 +84,11 @@ contract Knight is AccessControl, ERC721Enumerable, ERC721Pausable, IKnight {
         _mint(to, knightId);
         // If no gender specified choose random
         if (knightGender != 0x4d && knightGender != 0x46) {
-            knightGender = _getRandomKnightGender(uint(keccak256(abi.encodePacked(msg.sender))));
+            knightGender = _getRandomKnightGender(_getPseudoRandom());
         }
         // If no name is specified choose random
         if (keccak256(abi.encodePacked(knightName)) == keccak256(abi.encodePacked(""))) {
-            knightName = _getUniqueRandomKnightName(knightGender, uint(keccak256(abi.encodePacked(msg.sender))));
+            knightName = _getUniqueRandomKnightName(knightGender, _getPseudoRandom());
         }
         // Add Knight on chain
         knightDetails[knightId] = KnightDetails(
@@ -130,7 +130,7 @@ contract Knight is AccessControl, ERC721Enumerable, ERC721Pausable, IKnight {
         return string(abi.encodePacked(uniqueRandomName, " ", _convertIntToRomanNumeral(++nameIndex)));
     }
 
-    function _convertIntToRomanNumeral(uint8 number) private view returns (string memory) {
+    function _convertIntToRomanNumeral(uint8 number) private pure returns (string memory) {
         string[10] memory c = ["",  "C",  "CC",  "CCC",  "CD", "D", "DC", "DCC", "DCCC", "CM"];
         string[10] memory x = ["",  "X",  "XX",  "XXX",  "XL", "L", "LX", "LXX", "LXXX", "XC"];
         string[10] memory i = ["",  "I",  "II",  "III",  "IV", "V", "VI", "VII", "VIII", "IX"];
@@ -140,12 +140,18 @@ contract Knight is AccessControl, ERC721Enumerable, ERC721Pausable, IKnight {
         return string(abi.encodePacked(cc, xx, ii));
     }
 
-    function _getRandomKnightGender(uint seed) private view returns (bytes1) {
-        uint genderRandomInt = UniformRandomNumber.uniform(
-            uint(keccak256(abi.encodePacked(seed, blockhash(block.number - 1), block.difficulty))),
-            10
-        );
+    function _getRandomKnightGender(uint seed) private pure returns (bytes1) {
+        uint genderRandomInt = UniformRandomNumber.uniform(uint(keccak256(abi.encode(seed))), 10);
         return genderRandomInt >= 8 ? bytes1(0x46) : bytes1(0x4d);
+    }
+
+    function _getRandomKnightAttributes(uint seed) private pure returns (uint8[7] memory) {
+        uint8[7] memory attributes = [3, 3, 3, 3, 3, 3, 3];
+        return attributes;
+    }
+
+    function _getPseudoRandom() private view returns (uint) {
+        return uint(keccak256(abi.encode(block.difficulty, block.timestamp, block.number)));
     }
 
     function _beforeTokenTransfer(

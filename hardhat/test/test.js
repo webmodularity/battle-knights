@@ -71,6 +71,7 @@ describe("Battle Knights", function () {
     it("Should store name on chain for new Knight NFT", async function () {
       for (let i = 1;i <= 50;i++) {
         const knightName = await knightContract.getKnightName(i);
+        console.log(knightName);
         expect(knightName).to.not.be.empty;
       }
     });

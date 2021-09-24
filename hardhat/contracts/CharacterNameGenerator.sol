@@ -15,14 +15,8 @@ contract CharacterNameGenerator is ICharacterNameGenerator, Ownable {
         uint nameLength = gender == 0x46
             ? femaleNames.length
             : maleNames.length;
-        uint selectedNameIndex = UniformRandomNumber.uniform(
-            uint(keccak256(abi.encodePacked(seed, blockhash(block.number - 1), block.difficulty))),
-            nameLength
-        );
-        uint selectedTitleIndex = UniformRandomNumber.uniform(
-            uint(keccak256(abi.encodePacked(seed + 1, blockhash(block.number - 1), block.difficulty, block.coinbase))),
-            titles.length
-        );
+        uint selectedNameIndex = UniformRandomNumber.uniform(seed, nameLength);
+        uint selectedTitleIndex = UniformRandomNumber.uniform(seed++, titles.length);
         return gender == 0x46
             ? string(abi.encodePacked(femaleNames[selectedNameIndex], " ", titles[selectedTitleIndex]))
             : string(abi.encodePacked(maleNames[selectedNameIndex], " ", titles[selectedTitleIndex]));
