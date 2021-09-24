@@ -11,19 +11,19 @@ contract CharacterNameGenerator is ICharacterNameGenerator, Ownable {
     string[] internal femaleNames;
     string[] internal titles;
 
-    function getRandomName(string calldata gender, uint seed) external view override returns (string memory) {
-        uint nameLength = keccak256(abi.encodePacked(gender)) == keccak256(abi.encodePacked("F"))
+    function getRandomName(bytes1 gender, uint seed) external view override returns (string memory) {
+        uint nameLength = gender == 0x46
             ? femaleNames.length
             : maleNames.length;
         uint selectedNameIndex = UniformRandomNumber.uniform(
-            uint(keccak256(abi.encodePacked(blockhash(block.number - 1), block.difficulty, block.coinbase, seed))),
+            uint(keccak256(abi.encodePacked(seed, blockhash(block.number - 1), block.difficulty))),
             nameLength
         );
         uint selectedTitleIndex = UniformRandomNumber.uniform(
-            uint(keccak256(abi.encodePacked(blockhash(block.number - 1), block.difficulty, block.coinbase, seed + 1))),
-            nameLength
+            uint(keccak256(abi.encodePacked(seed + 1, blockhash(block.number - 1), block.difficulty, block.coinbase))),
+            titles.length
         );
-        return keccak256(abi.encodePacked(gender)) == keccak256(abi.encodePacked("F"))
+        return gender == 0x46
             ? string(abi.encodePacked(femaleNames[selectedNameIndex], " ", titles[selectedTitleIndex]))
             : string(abi.encodePacked(maleNames[selectedNameIndex], " ", titles[selectedTitleIndex]));
     }

@@ -39,22 +39,26 @@ describe("Battle Knights", function () {
 
   describe("Character Name Generator", function () {
     it("Should generate random name", async function () {
-      const randomName = await nameGeneratorContract.getRandomName("M", Math.floor(Math.random() * 1000));
+      const randomName = await nameGeneratorContract.getRandomName(
+          "0x" + "M".charCodeAt(0).toString(16),
+          Math.floor(Math.random() * 1000)
+      );
       expect(randomName).to.not.be.empty;
     });
   });
 
   describe("Knight", function () {
-    it("Should mint a new NFT via mintSpecial() to another signer address", async function () {
-      const mintTx = await knightContract.connect(signers[1]).mintSpecial(
-          signers[2].address,
-          [18, 18, 18, 18, 18, 18, 18],
-          "Rory the Rogue",
-          "0x" + "M".charCodeAt(0).toString(16),
-          "test_ipfs_url"
-      );
-      await mintTx.wait();
-      expect(await knightContract.ownerOf(1)).to.equal(signers[2].address);
+    it("Should mint 50 randomly generated NFTs via mintSpecial method", async function () {
+      for (let i = 1;i <= 50;i++) {
+        const mintTx = await knightContract.connect(signers[1]).mintSpecial(
+            signers[2].address,
+            [18, 18, 18, 18, 18, 18, 18],
+            "",
+            "0x00"//"0x" + "F".charCodeAt(0).toString(16)
+        );
+        await mintTx.wait();
+        expect(await knightContract.ownerOf(i)).to.equal(signers[2].address);
+      }
     });
 
     it("Should store attributes on chain for new Knight NFT", async function () {
@@ -65,13 +69,17 @@ describe("Battle Knights", function () {
     });
 
     it("Should store name on chain for new Knight NFT", async function () {
-      const firstKnightName = await knightContract.getKnightName(1);
-      expect(firstKnightName).to.equal("Rory the Rogue");
+      for (let i = 1;i <= 50;i++) {
+        const knightName = await knightContract.getKnightName(i);
+        expect(knightName).to.not.be.empty;
+      }
     });
 
     it("Should store gender on chain for new Knight NFT", async function () {
       const firstKnightGender = await knightContract.getKnightGender(1);
-      expect(firstKnightGender).to.equal("0x" + "M".charCodeAt(0).toString(16));
+      expect(firstKnightGender).to.be.oneOf(
+          ["0x" + "F".charCodeAt(0).toString(16), "0x" + "M".charCodeAt(0).toString(16)]
+      );
     });
   });
 });
