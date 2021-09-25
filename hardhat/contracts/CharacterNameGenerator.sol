@@ -16,7 +16,9 @@ contract CharacterNameGenerator is ICharacterNameGenerator, Ownable {
             ? femaleNames.length
             : maleNames.length;
         uint selectedNameIndex = UniformRandomNumber.uniform(seed, nameLength);
-        uint selectedTitleIndex = UniformRandomNumber.uniform(seed++, titles.length);
+        uint selectedTitleIndex = UniformRandomNumber.uniform(
+            uint(keccak256(abi.encode(seed, 1))),
+            titles.length);
         return gender == 0x46
             ? string(abi.encodePacked(femaleNames[selectedNameIndex], " ", titles[selectedTitleIndex]))
             : string(abi.encodePacked(maleNames[selectedNameIndex], " ", titles[selectedTitleIndex]));
@@ -41,4 +43,5 @@ contract CharacterNameGenerator is ICharacterNameGenerator, Ownable {
     function destroy() external onlyOwner {
         selfdestruct(payable(msg.sender));
     }
+
 }

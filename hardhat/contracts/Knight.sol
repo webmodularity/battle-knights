@@ -14,6 +14,8 @@ import "./UniformRandomNumber.sol";
 
 contract Knight is AccessControl, ERC721Enumerable, ERC721Pausable, IKnight {
     using Counters for Counters.Counter;
+    enum DiceBiasDirections { Up, Down }
+    // Counters
     Counters.Counter private _tokenIds;
     Counters.Counter private _seasonIds;
     Counters.Counter private _battleIds;
@@ -113,7 +115,10 @@ contract Knight is AccessControl, ERC721Enumerable, ERC721Pausable, IKnight {
         string memory uniqueRandomName;
         while (attempts < 3) {
             attempts++;
-            uniqueRandomName = nameGeneratorContract.getRandomName(gender, seed + attempts);
+            uniqueRandomName = nameGeneratorContract.getRandomName(
+                gender,
+                uint(keccak256(abi.encode(seed, attempts)))
+            );
             nameIndex = usedKnightNames[keccak256(abi.encodePacked(uniqueRandomName))];
             if (nameIndex == 0) {
                 usedKnightNames[keccak256(abi.encodePacked(uniqueRandomName))]++;
@@ -145,10 +150,33 @@ contract Knight is AccessControl, ERC721Enumerable, ERC721Pausable, IKnight {
         return genderRandomInt >= 8 ? bytes1(0x46) : bytes1(0x4d);
     }
 
-    function _getRandomKnightAttributes(uint seed) private pure returns (uint8[7] memory) {
-        uint8[7] memory attributes = [3, 3, 3, 3, 3, 3, 3];
+    function _getRandomKnightAttributes(uint seed) private pure returns (uint[7] memory) {
+        uint[7] memory attributes;
+        uint randomCounter;
+        for (uint i = 0;i < 2;i++) {
+
+        }
         return attributes;
     }
+
+//    function _rollDiceSetBiased(
+//        uint8 resultSetSize,
+//        uint8 totalSetSize,
+//        uint upperLimit,
+//        uint seed,
+//        uint randomCounter,
+//        DiceBiasDirections biasDirection
+//    ) private view returns (uint8) {
+//        uint[resultSetSize] resultSet;
+//        for (uint i = 1;i <= totalSetSize;i++) {
+//            uint randomResult = UniformRandomNumber.uniform(uint(keccak256(abi.encode(seed, randomCounter + i))));
+//            for (uint c = 1;c <= resultSetSize;c++) {
+//                if (resultSet[i]) {
+//
+//                }
+//            }
+//        }
+//    }
 
     function _getPseudoRandom() private view returns (uint) {
         return uint(keccak256(abi.encode(block.difficulty, block.timestamp, block.number)));

@@ -4,6 +4,7 @@ const { ethers } = require("hardhat");
 describe("Battle Knights", function () {
   let knightContract, nameGeneratorContract, battleContract;
   let signers = [];
+  const testKnightAmount = 25;
 
   before(async () => {
     signers = await ethers.getSigners();
@@ -48,8 +49,8 @@ describe("Battle Knights", function () {
   });
 
   describe("Knight", function () {
-    it("Should mint 50 randomly generated NFTs via mintSpecial method", async function () {
-      for (let i = 1;i <= 50;i++) {
+    it(`Should mint ${testKnightAmount} randomly generated NFTs via mintSpecial method`, async function () {
+      for (let i = 1;i <= testKnightAmount;i++) {
         const mintTx = await knightContract.connect(signers[1]).mintSpecial(
             signers[2].address,
             [18, 18, 18, 18, 18, 18, 18],
@@ -69,9 +70,8 @@ describe("Battle Knights", function () {
     });
 
     it("Should store name on chain for new Knight NFT", async function () {
-      for (let i = 1;i <= 50;i++) {
+      for (let i = 1;i <= testKnightAmount;i++) {
         const knightName = await knightContract.getKnightName(i);
-        console.log(knightName);
         expect(knightName).to.not.be.empty;
       }
     });
