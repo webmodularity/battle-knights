@@ -4,7 +4,7 @@ pragma solidity ^0.8.5;
 import "hardhat/console.sol";
 import "@openzeppelin/contracts/access/Ownable.sol";
 import "./ICharacterNameGenerator.sol";
-import "./UniformRandomNumber.sol";
+import "./lib/UniformRandomNumber.sol";
 
 contract CharacterNameGenerator is ICharacterNameGenerator, Ownable {
     string[] internal maleNames;
@@ -22,6 +22,16 @@ contract CharacterNameGenerator is ICharacterNameGenerator, Ownable {
         return gender == 0x46
             ? string(abi.encodePacked(femaleNames[selectedNameIndex], " ", titles[selectedTitleIndex]))
             : string(abi.encodePacked(maleNames[selectedNameIndex], " ", titles[selectedTitleIndex]));
+    }
+
+    function convertIntToRomanNumeral(uint8 number) external pure override returns (string memory) {
+        string[10] memory c = ["",  "C",  "CC",  "CCC",  "CD", "D", "DC", "DCC", "DCCC", "CM"];
+        string[10] memory x = ["",  "X",  "XX",  "XXX",  "XL", "L", "LX", "LXX", "LXXX", "XC"];
+        string[10] memory i = ["",  "I",  "II",  "III",  "IV", "V", "VI", "VII", "VIII", "IX"];
+        string memory cc = c[(number % 1000) / 100];
+        string memory xx = x[(number % 100) / 10];
+        string memory ii = i[number % 10];
+        return string(abi.encodePacked(cc, xx, ii));
     }
 
     function addData(string calldata dataType, string[] calldata data) external onlyOwner {

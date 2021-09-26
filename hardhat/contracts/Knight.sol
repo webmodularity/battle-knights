@@ -10,11 +10,11 @@ import "@openzeppelin/contracts/utils/Counters.sol";
 import "./IKnight.sol";
 import "./IBattle.sol";
 import "./ICharacterNameGenerator.sol";
-import "./UniformRandomNumber.sol";
+import "./lib/UniformRandomNumber.sol";
+import "./lib/Dice.sol";
 
 contract Knight is AccessControl, ERC721Enumerable, ERC721Pausable, IKnight {
     using Counters for Counters.Counter;
-    enum DiceBiasDirections { Up, Down }
     // Counters
     Counters.Counter private _tokenIds;
     Counters.Counter private _seasonIds;
@@ -92,6 +92,15 @@ contract Knight is AccessControl, ERC721Enumerable, ERC721Pausable, IKnight {
         if (keccak256(abi.encodePacked(knightName)) == keccak256(abi.encodePacked(""))) {
             knightName = _getUniqueRandomKnightName(knightGender, _getPseudoRandom());
         }
+        uint randomAttribute = Dice.rollDiceSetBiased(
+            3,
+            8,
+            6,
+            uint(keccak256(abi.encodePacked(knightName))),
+            1,
+            Dice.DiceBiasDirections.Up
+        );
+        console.log(randomAttribute);
         // Add Knight on chain
         knightDetails[knightId] = KnightDetails(
             knightName,
@@ -132,17 +141,12 @@ contract Knight is AccessControl, ERC721Enumerable, ERC721Pausable, IKnight {
         } else {
             usedKnightNames[keccak256(abi.encodePacked(uniqueRandomName))]++;
         }
-        return string(abi.encodePacked(uniqueRandomName, " ", _convertIntToRomanNumeral(++nameIndex)));
-    }
-
-    function _convertIntToRomanNumeral(uint8 number) private pure returns (string memory) {
-        string[10] memory c = ["",  "C",  "CC",  "CCC",  "CD", "D", "DC", "DCC", "DCCC", "CM"];
-        string[10] memory x = ["",  "X",  "XX",  "XXX",  "XL", "L", "LX", "LXX", "LXXX", "XC"];
-        string[10] memory i = ["",  "I",  "II",  "III",  "IV", "V", "VI", "VII", "VIII", "IX"];
-        string memory cc = c[(number % 1000) / 100];
-        string memory xx = x[(number % 100) / 10];
-        string memory ii = i[number % 10];
-        return string(abi.encodePacked(cc, xx, ii));
+        return string(abi.encodePacked(
+                uniqueRandomName,
+                " ",
+                nameGeneratorContract.convertIntToRomanNumeral(++nameIndex)
+            )
+        );
     }
 
     function _getRandomKnightGender(uint seed) private pure returns (bytes1) {
@@ -159,24 +163,7 @@ contract Knight is AccessControl, ERC721Enumerable, ERC721Pausable, IKnight {
         return attributes;
     }
 
-//    function _rollDiceSetBiased(
-//        uint8 resultSetSize,
-//        uint8 totalSetSize,
-//        uint upperLimit,
-//        uint seed,
-//        uint randomCounter,
-//        DiceBiasDirections biasDirection
-//    ) private view returns (uint8) {
-//        uint[resultSetSize] resultSet;
-//        for (uint i = 1;i <= totalSetSize;i++) {
-//            uint randomResult = UniformRandomNumber.uniform(uint(keccak256(abi.encode(seed, randomCounter + i))));
-//            for (uint c = 1;c <= resultSetSize;c++) {
-//                if (resultSet[i]) {
-//
-//                }
-//            }
-//        }
-//    }
+
 
     function _getPseudoRandom() private view returns (uint) {
         return uint(keccak256(abi.encode(block.difficulty, block.timestamp, block.number)));
