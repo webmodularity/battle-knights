@@ -4,7 +4,7 @@ const { ethers } = require("hardhat");
 describe("Battle Knights", function () {
   let knightContract, nameGeneratorContract, battleContract;
   let signers = [];
-  const testKnightAmount = 25;
+  const testKnightAmount = 1;
 
   before(async () => {
     signers = await ethers.getSigners();

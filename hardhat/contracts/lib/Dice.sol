@@ -13,10 +13,9 @@ library Dice {
         uint seed,
         uint randomCounter,
         DiceBiasDirections biasDirection
-    ) internal pure returns (uint) {
+    ) internal returns (uint) {
         require(totalSetSize > resultSetSize, "Not biased");
         uint[] memory allResults = new uint[](totalSetSize);
-        uint[] memory resultMap;
         uint biasedSetSum;
         uint setCounter;
         for (uint i = 1;i <= totalSetSize;i++) {
@@ -25,13 +24,14 @@ library Dice {
                     upperLimit
             ) + 1;
         }
-        // Need to sort allResults
+        // Sort allResults
+        sortArray(allResults);
         if (biasDirection == DiceBiasDirections.Up) {
-            for (uint c = allResults.length - 1;c > 0;c--) {
+            for (uint c = allResults.length - 1;c >= 0;c--) {
                 biasedSetSum += allResults[c];
                 setCounter++;
                 if (setCounter == resultSetSize) {
-                    return biasedSetSum;
+                    break;
                 }
             }
         } else {
@@ -39,12 +39,24 @@ library Dice {
                 biasedSetSum += allResults[c];
                 setCounter++;
                 if (setCounter == resultSetSize) {
-                    return biasedSetSum;
+                    break;
                 }
             }
         }
-        // Fallback to returning current biasedSetSum, but should return above after walking up or down map
         return biasedSetSum;
+    }
+
+    function sortArray(uint[] memory arr) internal pure {
+        uint l = arr.length;
+        for(uint i = 0; i < l; i++) {
+            for(uint j = i+1; j < l ;j++) {
+                if(arr[i] > arr[j]) {
+                    uint temp = arr[i];
+                    arr[i] = arr[j];
+                    arr[j] = temp;
+                }
+            }
+        }
     }
 
 }
