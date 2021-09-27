@@ -6,23 +6,30 @@ import "./UniformRandomNumber.sol";
 library Dice {
     enum DiceBiasDirections { Up, Down }
 
+    function rollDiceSet(uint8 resultSetSize, uint upperLimit, uint seed) internal pure returns (uint) {
+        uint sum;
+        for (uint i = 0;i < resultSetSize;i++) {
+            sum += UniformRandomNumber.uniform(
+                uint(keccak256(abi.encode(seed, i))),
+                upperLimit
+            ) + 1;
+        }
+        return sum;
+    }
+
     function rollDiceSetBiased(
         uint8 resultSetSize,
         uint8 totalSetSize,
         uint upperLimit,
         uint seed,
-        uint randomCounter,
         DiceBiasDirections biasDirection
-    ) internal returns (uint) {
+    ) internal pure returns (uint) {
         require(totalSetSize > resultSetSize, "Not biased");
         uint[] memory allResults = new uint[](totalSetSize);
         uint biasedSetSum;
         uint setCounter;
         for (uint i = 1;i <= totalSetSize;i++) {
-            allResults[i - 1] = UniformRandomNumber.uniform(
-                uint(keccak256(abi.encodePacked(seed, randomCounter + i))),
-                    upperLimit
-            ) + 1;
+            allResults[i - 1] = UniformRandomNumber.uniform(uint(keccak256(abi.encode(seed, i))), upperLimit) + 1;
         }
         // Sort allResults
         sortArray(allResults);

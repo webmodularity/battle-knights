@@ -4,7 +4,7 @@ const { ethers } = require("hardhat");
 describe("Battle Knights", function () {
   let knightContract, nameGeneratorContract, battleContract;
   let signers = [];
-  const testKnightAmount = 1;
+  const testKnightAmount = 25;
 
   before(async () => {
     signers = await ethers.getSigners();
@@ -53,7 +53,7 @@ describe("Battle Knights", function () {
       for (let i = 1;i <= testKnightAmount;i++) {
         const mintTx = await knightContract.connect(signers[1]).mintSpecial(
             signers[2].address,
-            [18, 18, 18, 18, 18, 18, 18],
+            [0, 18, 18, 18, 18, 18, 18],
             "",
             "0x00"//"0x" + "F".charCodeAt(0).toString(16)
         );
@@ -62,10 +62,16 @@ describe("Battle Knights", function () {
       }
     });
 
-    it("Should store attributes on chain for new Knight NFT", async function () {
-      const firstKnightAttributes = await knightContract.getKnightAttributes(1);
-      for (let i = 0;i < 6;i++) {
-        expect(firstKnightAttributes[i]).to.equal(18);
+    it("Should store attributes on chain that are between 3-18 and sum to 84", async function () {
+      for (let i = 1;i <= testKnightAmount;i++) {
+        const knightAttributes = await knightContract.getKnightAttributes(i);
+        let knightAttributesSum = 0;
+        for (let i = 0; i < 7; i++) {
+          expect(knightAttributes[i]).to.be.within(3, 18);
+          knightAttributesSum += knightAttributes[i];
+        }
+        expect(knightAttributesSum).to.equal(84);
+        //console.log(`${knightAttributes[0]}, ${knightAttributes[1]}, ${knightAttributes[2]}, ${knightAttributes[3]}, ${knightAttributes[4]}, ${knightAttributes[5]}, ${knightAttributes[6]} = ${knightAttributesSum}`);
       }
     });
 

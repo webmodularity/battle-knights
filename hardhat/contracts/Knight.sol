@@ -10,7 +10,6 @@ import "@openzeppelin/contracts/utils/Counters.sol";
 import "./IKnight.sol";
 import "./IBattle.sol";
 import "./ICharacterNameGenerator.sol";
-import "./lib/UniformRandomNumber.sol";
 import "./lib/Dice.sol";
 
 contract Knight is AccessControl, ERC721Enumerable, ERC721Pausable, IKnight {
@@ -92,27 +91,22 @@ contract Knight is AccessControl, ERC721Enumerable, ERC721Pausable, IKnight {
         if (keccak256(abi.encodePacked(knightName)) == keccak256(abi.encodePacked(""))) {
             knightName = _getUniqueRandomKnightName(knightGender, _getPseudoRandom());
         }
-        uint randomAttribute = Dice.rollDiceSetBiased(
-            3,
-            8,
-            6,
-            uint(keccak256(abi.encodePacked(knightName))),
-            1,
-            Dice.DiceBiasDirections.Up
-        );
-        console.log(randomAttribute);
+        // Random Attributes
+        uint8[7] memory attributes = (attributes_[0] == 0)
+            ? _getRandomKnightAttributes(uint(keccak256(abi.encode(knightName))))
+            : attributes_;
         // Add Knight on chain
         knightDetails[knightId] = KnightDetails(
             knightName,
             knightGender,
             KnightAttributes(
-                attributes_[0],
-                attributes_[1],
-                attributes_[2],
-                attributes_[3],
-                attributes_[4],
-                attributes_[5],
-                attributes_[6]
+                attributes[0],
+                attributes[1],
+                attributes[2],
+                attributes[3],
+                attributes[4],
+                attributes[5],
+                attributes[6]
             ),
             KnightRecord(0,0,0,0)
         );
@@ -154,16 +148,48 @@ contract Knight is AccessControl, ERC721Enumerable, ERC721Pausable, IKnight {
         return genderRandomInt >= 8 ? bytes1(0x46) : bytes1(0x4d);
     }
 
-    function _getRandomKnightAttributes(uint seed) private pure returns (uint[7] memory) {
-        uint[7] memory attributes;
-        uint randomCounter;
-        for (uint i = 0;i < 2;i++) {
-
+    function _getRandomKnightAttributes(uint seed) private returns (uint8[7] memory) {
+        uint attempts;
+        while (attempts < 3) {
+            uint8[7] memory attributes;
+            attempts++;
+            uint sum;
+            for (uint i = 1;i <= 6;i++) {
+                uint newSeed = uint(keccak256(abi.encode(seed, i + (attempts * 7))));
+                if (i == 1 || ((sum / i > 10) && (sum / i < 13))) {
+                    attributes[i - 1] = uint8(Dice.rollDiceSet(3, 6, newSeed));
+                } else {
+                    Dice.DiceBiasDirections diceBiasDirection = (sum / i < 10)
+                    ? Dice.DiceBiasDirections.Up
+                    : Dice.DiceBiasDirections.Down;
+                    attributes[i - 1] = uint8(Dice.rollDiceSetBiased(3, 5, 6, newSeed, diceBiasDirection));
+                }
+                sum += attributes[i - 1];
+            }
+            if (sum >= 82 || sum <= 65) {
+                // Not possible to hit 84, try again
+                continue;
+            }
+            attributes[6] = uint8(84 - sum);
+            _shuffleAttributes(attributes, uint(keccak256(abi.encode(seed, attributes[0], attributes[6]))));
+            return attributes;
         }
+        // Fallback to 12s
+        uint8[7] memory attributes = [12, 12, 12, 12, 12, 12, 12];
         return attributes;
     }
 
-
+    function _shuffleAttributes(uint8[7] memory attributes, uint seed) private pure {
+        for (uint i = 0; i < 7; i++) {
+            uint n = UniformRandomNumber.uniform(
+                uint(keccak256(abi.encode(seed, i))),
+                7
+            );
+            uint8 temp = attributes[n];
+            attributes[n] = attributes[i];
+            attributes[i] = temp;
+        }
+    }
 
     function _getPseudoRandom() private view returns (uint) {
         return uint(keccak256(abi.encode(block.difficulty, block.timestamp, block.number)));
