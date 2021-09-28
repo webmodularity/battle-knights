@@ -5,7 +5,10 @@ import "@openzeppelin/contracts/token/ERC721/extensions/IERC721Enumerable.sol";
 
 interface IKnight is IERC721Enumerable {
 
-    struct KnightAttributes {
+    enum Gender {M, F}
+    enum Race {Human, Dwarf, Orc, Ogre, Elf, Halfling, Undead, Gnome}
+
+    struct Attributes {
         uint8 strength;
         uint8 vitality;
         uint8 size;
@@ -15,18 +18,20 @@ interface IKnight is IERC721Enumerable {
         uint8 luck;
     }
 
-    struct KnightRecord {
+    struct Record {
         uint32 wins;
         uint32 losses;
         uint16 kills;
-        uint16 tournamentVictories;
+        uint16 tournamentWins;
     }
 
-
-    struct KnightDetails {
+    struct SKnight {
         string name;
-        bytes1 gender;
-        KnightAttributes attributes;
-        KnightRecord record;
+        Race race;
+        Gender gender;
+        Attributes attributes;
+        Record record;
+        bool isDead;
     }
+
 }

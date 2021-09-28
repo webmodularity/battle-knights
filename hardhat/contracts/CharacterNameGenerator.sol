@@ -1,25 +1,28 @@
 //SPDX-License-Identifier: UNLICENSED
 pragma solidity ^0.8.5;
 
-import "hardhat/console.sol";
 import "@openzeppelin/contracts/access/Ownable.sol";
 import "./ICharacterNameGenerator.sol";
 import "./lib/UniformRandomNumber.sol";
+import "./IKnight.sol";
 
 contract CharacterNameGenerator is ICharacterNameGenerator, Ownable {
     string[] internal maleNames;
     string[] internal femaleNames;
     string[] internal titles;
 
-    function getRandomName(bytes1 gender, uint seed) external view override returns (string memory) {
-        uint nameLength = gender == 0x46
+    function getRandomName(
+        IKnight.Gender gender,
+        IKnight.Race race,
+        uint seed
+    ) external view override returns (string memory) {
+        // TODO Add Support for races
+        uint nameLength = gender == IKnight.Gender.F
             ? femaleNames.length
             : maleNames.length;
         uint selectedNameIndex = UniformRandomNumber.uniform(seed, nameLength);
-        uint selectedTitleIndex = UniformRandomNumber.uniform(
-            uint(keccak256(abi.encode(seed, 1))),
-            titles.length);
-        return gender == 0x46
+        uint selectedTitleIndex = UniformRandomNumber.uniform(uint(keccak256(abi.encode(seed, 1))), titles.length);
+        return gender == IKnight.Gender.F
             ? string(abi.encodePacked(femaleNames[selectedNameIndex], " ", titles[selectedTitleIndex]))
             : string(abi.encodePacked(maleNames[selectedNameIndex], " ", titles[selectedTitleIndex]));
     }
@@ -35,6 +38,7 @@ contract CharacterNameGenerator is ICharacterNameGenerator, Ownable {
     }
 
     function addData(string calldata dataType, string[] calldata data) external onlyOwner {
+        // TODO Add Support for races
         if (keccak256(abi.encodePacked(dataType)) == keccak256(abi.encodePacked("maleNames"))) {
             for (uint i = 0;i < data.length;i++) {
                 maleNames.push(data[i]);

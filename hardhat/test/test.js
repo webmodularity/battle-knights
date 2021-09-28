@@ -35,58 +35,73 @@ describe("Battle Knights", function () {
     // Set Battle contract
     await knightContract.changeBattleContract(battleContract.address);
     // Set MINTER_ROLE for signers[1]
-    await knightContract.addMinterRole(signers[1].address);
-  });
-
-  describe("Character Name Generator", function () {
-    it("Should generate random name", async function () {
-      const randomName = await nameGeneratorContract.getRandomName(
-          "0x" + "M".charCodeAt(0).toString(16),
-          Math.floor(Math.random() * 1000)
-      );
-      expect(randomName).to.not.be.empty;
-    });
+    //await knightContract.addMinterRole(signers[1].address);
   });
 
   describe("Knight", function () {
-    it(`Should mint ${testKnightAmount} randomly generated NFTs via mintSpecial method`, async function () {
+    it(`Should mint ${testKnightAmount} randomly generated NFTs`, async function () {
       for (let i = 1;i <= testKnightAmount;i++) {
-        const mintTx = await knightContract.connect(signers[1]).mintSpecial(
-            signers[2].address,
-            [0, 18, 18, 18, 18, 18, 18],
-            "",
-            "0x00"//"0x" + "F".charCodeAt(0).toString(16)
-        );
+        const mintTx = await knightContract.connect(signers[1]).mint();
         await mintTx.wait();
-        expect(await knightContract.ownerOf(i)).to.equal(signers[2].address);
+        expect(await knightContract.ownerOf(i)).to.equal(signers[1].address);
       }
     });
 
     it("Should store attributes on chain that are between 3-18 and sum to 84", async function () {
       for (let i = 1;i <= testKnightAmount;i++) {
-        const knightAttributes = await knightContract.getKnightAttributes(i);
+        const knightAttributes = await knightContract.getAttributes(i);
         let knightAttributesSum = 0;
         for (let i = 0; i < 7; i++) {
           expect(knightAttributes[i]).to.be.within(3, 18);
           knightAttributesSum += knightAttributes[i];
         }
         expect(knightAttributesSum).to.equal(84);
-        //console.log(`${knightAttributes[0]}, ${knightAttributes[1]}, ${knightAttributes[2]}, ${knightAttributes[3]}, ${knightAttributes[4]}, ${knightAttributes[5]}, ${knightAttributes[6]} = ${knightAttributesSum}`);
       }
     });
 
-    it("Should store name on chain for new Knight NFT", async function () {
+    it("Should store name on chain", async function () {
       for (let i = 1;i <= testKnightAmount;i++) {
-        const knightName = await knightContract.getKnightName(i);
+        const knightName = await knightContract.getName(i);
         expect(knightName).to.not.be.empty;
       }
     });
 
-    it("Should store gender on chain for new Knight NFT", async function () {
-      const firstKnightGender = await knightContract.getKnightGender(1);
-      expect(firstKnightGender).to.be.oneOf(
-          ["0x" + "F".charCodeAt(0).toString(16), "0x" + "M".charCodeAt(0).toString(16)]
-      );
+    it("Should store race on chain", async function () {
+      for (let i = 1;i <= testKnightAmount;i++) {
+        const knightRace = await knightContract.getRace(i);
+        expect(knightRace).to.be.within(0, 7);
+      }
     });
+
+    it("Should store gender on chain", async function () {
+      for (let i = 1;i <= testKnightAmount;i++) {
+        const knightGender = await knightContract.getGender(i);
+        expect(knightGender).to.be.within(0, 1);
+      }
+    });
+
+    it("Should not be dead", async function () {
+      for (let i = 1;i <= testKnightAmount;i++) {
+        const knightIsDead = await knightContract.getIsDead(i);
+        expect(knightIsDead).to.be.false;
+      }
+    });
+
+    // it("Should log some knights to console", async function () {
+    //   for (let i = 1;i <= testKnightAmount;i++) {
+    //     const knightName = await knightContract.getName(i);
+    //     const knightRace = await knightContract.getRace(i);
+    //     const knightGender = await knightContract.getGender(i);
+    //     const knightAttributes = await knightContract.getAttributes(i);
+    //     let knightAttributesSum = 0;
+    //     for (let i = 0; i < 7; i++) {
+    //       expect(knightAttributes[i]).to.be.within(3, 18);
+    //       knightAttributesSum += knightAttributes[i];
+    //     }
+    //     console.log(`${knightName} ${knightGender} ${knightRace}`);
+    //     console.log(`${knightAttributes[0]}, ${knightAttributes[1]}, ${knightAttributes[2]}, ${knightAttributes[3]}, ${knightAttributes[4]}, ${knightAttributes[5]}, ${knightAttributes[6]}`);
+    //   }
+    // });
+
   });
 });
