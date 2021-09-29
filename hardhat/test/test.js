@@ -2,40 +2,40 @@ const { expect } = require("chai");
 const { ethers } = require("hardhat");
 
 describe("Battle Knights", function () {
-  let knightContract, nameGeneratorContract, battleContract;
+  let knightContract, knightGeneratorContract, battleContract;
   let signers = [];
   const testKnightAmount = 25;
 
   before(async () => {
     signers = await ethers.getSigners();
-    // Deploy CharacterNameGenerator contract
-    const nameGeneratorFactory = await ethers.getContractFactory("CharacterNameGenerator");
-    nameGeneratorContract = await nameGeneratorFactory.deploy();
-    // Wait for contract to deploy
-    await nameGeneratorContract.deployed();
-    // Set some test names and titles
-    const maleNamesTx = await nameGeneratorContract.addData('maleNames', ["Rory", "Dan", "Cody", "Phil", "Alvaro"]);
-    await maleNamesTx.wait();
-    const femaleNamesTx = await nameGeneratorContract.addData('femaleNames', ["Colette", "Celeste", "Ellie", "Eva"]);
-    await femaleNamesTx.wait();
-    const titlesTx = await nameGeneratorContract.addData('titles', ["the Rogue", "the Patient", "the Viking", "the Crusher"]);
-    await titlesTx.wait();
-    // Deploy Battle contract
-    const battleFactory = await ethers.getContractFactory("Battle");
-    battleContract = await battleFactory.deploy();
-    // Wait for contract to deploy
-    await nameGeneratorContract.deployed();
     // Deploy Knight contract
     const knightFactory = await ethers.getContractFactory("Knight");
     knightContract = await knightFactory.deploy();
     // Wait for contract to deploy
     await knightContract.deployed();
+    // Deploy KnightGenerator contract
+    const knightGeneratorFactory = await ethers.getContractFactory("KnightGenerator");
+    knightGeneratorContract = await knightGeneratorFactory.deploy(knightContract.address);
+    // Wait for contract to deploy
+    await knightGeneratorContract.deployed();
+    // Set some test names and titles
+    const maleNamesTx = await knightGeneratorContract.addData('maleNames', ["Rory", "Dan", "Cody", "Phil", "Alvaro"]);
+    await maleNamesTx.wait();
+    const femaleNamesTx = await knightGeneratorContract.addData('femaleNames', ["Colette", "Celeste", "Ellie", "Eva"]);
+    await femaleNamesTx.wait();
+    const titlesTx = await knightGeneratorContract.addData('titles', ["the Rogue", "the Patient", "the Viking", "the Crusher"]);
+    await titlesTx.wait();
+    // Deploy Battle contract
+    const battleFactory = await ethers.getContractFactory("Battle");
+    battleContract = await battleFactory.deploy();
+    // Wait for contract to deploy
+    await knightGeneratorContract.deployed();
     // Set nameGenerator contract
-    await knightContract.changeNameGeneratorContract(nameGeneratorContract.address);
+    await knightContract.changeKnightGeneratorContract(knightGeneratorContract.address);
     // Set Battle contract
     await knightContract.changeBattleContract(battleContract.address);
-    // Set MINTER_ROLE for signers[1]
-    //await knightContract.addMinterRole(signers[1].address);
+    // Set SYNCER_ROLE for signers[1]
+    await knightContract.addSyncerRole(signers[1].address);
   });
 
   describe("Knight", function () {
