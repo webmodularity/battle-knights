@@ -42,12 +42,12 @@ contract Knight is AccessControl, ERC721Enumerable, ERC721Pausable, IKnight {
         battleContract = IBattle(battleContractAddress);
     }
 
-    function addSyncerRole(address account_) external onlyRole(DEFAULT_ADMIN_ROLE) {
-        grantRole(SYNCER_ROLE, account_);
+    function addSyncerRole(address account) external onlyRole(DEFAULT_ADMIN_ROLE) {
+        grantRole(SYNCER_ROLE, account);
     }
 
-    function removeSyncerRole(address account_) external onlyRole(DEFAULT_ADMIN_ROLE) {
-        revokeRole(SYNCER_ROLE, account_);
+    function removeSyncerRole(address account) external onlyRole(DEFAULT_ADMIN_ROLE) {
+        revokeRole(SYNCER_ROLE, account);
     }
 
     function getName(uint256 tokenId) external view returns (string memory) {

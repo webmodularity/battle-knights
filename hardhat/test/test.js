@@ -1,6 +1,8 @@
 const { expect } = require("chai");
 const { ethers } = require("hardhat");
 
+const gameEnums = require("../scripts/gameEnums");
+
 describe("Battle Knights", function () {
   let knightContract, knightGeneratorContract, battleContract;
   let signers = [];
@@ -18,13 +20,6 @@ describe("Battle Knights", function () {
     knightGeneratorContract = await knightGeneratorFactory.deploy(knightContract.address);
     // Wait for contract to deploy
     await knightGeneratorContract.deployed();
-    // Set some test names and titles
-    const maleNamesTx = await knightGeneratorContract.addData('maleNames', ["Rory", "Dan", "Cody", "Phil", "Alvaro"]);
-    await maleNamesTx.wait();
-    const femaleNamesTx = await knightGeneratorContract.addData('femaleNames', ["Colette", "Celeste", "Ellie", "Eva"]);
-    await femaleNamesTx.wait();
-    const titlesTx = await knightGeneratorContract.addData('titles', ["the Rogue", "the Patient", "the Viking", "the Crusher"]);
-    await titlesTx.wait();
     // Deploy Battle contract
     const battleFactory = await ethers.getContractFactory("Battle");
     battleContract = await battleFactory.deploy();
@@ -36,6 +31,36 @@ describe("Battle Knights", function () {
     await knightContract.changeBattleContract(battleContract.address);
     // Set SYNCER_ROLE for signers[1]
     await knightContract.addSyncerRole(signers[1].address);
+  });
+
+  describe("Knight Generator", function () {
+    it("Should seed knightGenerator contract with test names and titles for each race", async function () {
+      const testMaleNames = ["Rory", "Dan", "Cody", "Phil", "Alvaro"];
+      const testFemaleNames = ["Colette", "Celeste", "Ellie", "Eva"];
+      const testTitles = ["the Rogue", "the Patient", "the Viking", "the Crusher", "the Tainted", "the Crusader"];
+      for (let i = 0;i < gameEnums.races.enum.length;i++) {
+        const maleNamesTx = await knightGeneratorContract.addNameData(
+            gameEnums.genders.findIndex("M"),
+            i,
+            testMaleNames
+        );
+        const femaleNamesTx = await knightGeneratorContract.addNameData(
+            gameEnums.genders.findIndex("F"),
+            i,
+            testFemaleNames
+        );
+        const titlesTx = await knightGeneratorContract.addTitleData(i, testTitles);
+        expect(await knightGeneratorContract.getNamesCount(
+            gameEnums.genders.findIndex("M"),
+            i
+        )).to.equal(5);
+        expect(await knightGeneratorContract.getNamesCount(
+            gameEnums.genders.findIndex("F"),
+            i
+        )).to.equal(4);
+        expect(await knightGeneratorContract.getTitlesCount(i)).to.equal(6);
+      }
+    });
   });
 
   describe("Knight", function () {
@@ -90,8 +115,8 @@ describe("Battle Knights", function () {
     // it("Should log some knights to console", async function () {
     //   for (let i = 1;i <= testKnightAmount;i++) {
     //     const knightName = await knightContract.getName(i);
-    //     const knightRace = await knightContract.getRace(i);
-    //     const knightGender = await knightContract.getGender(i);
+    //     const knightRace = gameEnums.races.enum[await knightContract.getRace(i)];
+    //     const knightGender = gameEnums.genders.enum[await knightContract.getGender(i)];
     //     const knightAttributes = await knightContract.getAttributes(i);
     //     let knightAttributesSum = 0;
     //     for (let i = 0; i < 7; i++) {

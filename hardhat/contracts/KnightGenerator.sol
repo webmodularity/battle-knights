@@ -1,6 +1,7 @@
 //SPDX-License-Identifier: UNLICENSED
 pragma solidity ^0.8.5;
 
+import "hardhat/console.sol";
 import "@openzeppelin/contracts/access/Ownable.sol";
 import "./IKnightGenerator.sol";
 import "./lib/UniformRandomNumber.sol";
@@ -9,11 +10,13 @@ import "./lib/Dice.sol";
 
 contract KnightGenerator is Ownable, IKnightGenerator {
     address private knightContractAddress;
-    string[] private maleNames;
-    string[] private femaleNames;
-    string[] private titles;
     // Store mapping of how many times names have been used
     mapping(bytes32 => uint8) private usedKnightNames;
+    // Store Name Data
+    mapping(IKnight.Race => string[]) private maleNames;
+    mapping(IKnight.Race => string[]) private femaleNames;
+    // Store Titles Data
+    mapping(IKnight.Race => string[]) private titles;
 
     constructor(address _knightContractAddress) {
         knightContractAddress = _knightContractAddress;
@@ -30,6 +33,47 @@ contract KnightGenerator is Ownable, IKnightGenerator {
         );
         IKnight.Attributes memory attributes = _getRandomKnightAttributes(uint(keccak256(abi.encode(seed, 4))), race);
         return IKnight.SKnight(name, race, gender, attributes, IKnight.Record(0,0,0,0), false);
+    }
+
+    function addNameData(
+        IKnight.Gender gender,
+        IKnight.Race race,
+        string[] calldata data
+    ) external override onlyOwner {
+        if (gender == IKnight.Gender.F) {
+            for (uint i = 0;i < data.length;i++) {
+                femaleNames[race].push(data[i]);
+            }
+        } else {
+            for (uint i = 0;i < data.length;i++) {
+                maleNames[race].push(data[i]);
+            }
+        }
+    }
+
+    function addTitleData(
+        IKnight.Race race,
+        string[] calldata data
+    ) external override onlyOwner {
+        for (uint i = 0;i < data.length;i++) {
+            titles[race].push(data[i]);
+        }
+    }
+
+    function getNamesCount(IKnight.Gender gender, IKnight.Race race) public view override returns (uint) {
+        if (gender == IKnight.Gender.F) {
+            return femaleNames[race].length;
+        } else {
+            return maleNames[race].length;
+        }
+    }
+
+    function getTitlesCount(IKnight.Race race) public view override returns (uint) {
+        return titles[race].length;
+    }
+
+    function destroy() external onlyOwner {
+        selfdestruct(payable(msg.sender));
     }
 
     function _getRandomKnightName(
@@ -73,16 +117,17 @@ contract KnightGenerator is Ownable, IKnightGenerator {
         IKnight.Race race,
         uint seed
     ) private view returns (string memory) {
-        // TODO Add Support for races
-        // PURE?
-        uint nameLength = gender == IKnight.Gender.F
-        ? femaleNames.length
-        : maleNames.length;
+        uint nameLength = getNamesCount(gender, race);
         uint selectedNameIndex = UniformRandomNumber.uniform(seed, nameLength);
-        uint selectedTitleIndex = UniformRandomNumber.uniform(uint(keccak256(abi.encode(seed, 1))), titles.length);
-        return gender == IKnight.Gender.F
-        ? string(abi.encodePacked(femaleNames[selectedNameIndex], " ", titles[selectedTitleIndex]))
-        : string(abi.encodePacked(maleNames[selectedNameIndex], " ", titles[selectedTitleIndex]));
+        uint selectedTitleIndex = UniformRandomNumber.uniform(
+            uint(keccak256(abi.encode(seed, 1))),
+            titles[race].length
+        );
+        if (gender == IKnight.Gender.F) {
+            return string(abi.encodePacked(femaleNames[race][selectedNameIndex], " ", titles[race][selectedTitleIndex]));
+        } else {
+            return string(abi.encodePacked(maleNames[race][selectedNameIndex], " ", titles[race][selectedTitleIndex]));
+        }
     }
 
     function _convertIntToRomanNumeral(uint8 number) private pure returns (string memory) {
@@ -95,38 +140,21 @@ contract KnightGenerator is Ownable, IKnightGenerator {
         return string(abi.encodePacked(cc, xx, ii));
     }
 
-    function addData(string calldata dataType, string[] calldata data) external override onlyOwner {
-        // TODO Add Support for races
-        if (keccak256(abi.encodePacked(dataType)) == keccak256(abi.encodePacked("maleNames"))) {
-            for (uint i = 0;i < data.length;i++) {
-                maleNames.push(data[i]);
-            }
-        } else if (keccak256(abi.encodePacked(dataType)) == keccak256(abi.encodePacked("femaleNames"))) {
-            for (uint i = 0;i < data.length;i++) {
-                femaleNames.push(data[i]);
-            }
-        } else if (keccak256(abi.encodePacked(dataType)) == keccak256(abi.encodePacked("titles"))) {
-            for (uint i = 0;i < data.length;i++) {
-                titles.push(data[i]);
-            }
-        }
-    }
-
     function _getRandomKnightRace(uint seed) private pure returns (IKnight.Race) {
-        uint raceRandomInt = UniformRandomNumber.uniform(seed, 100) + 1;
-        if (raceRandomInt >= 80 && raceRandomInt <= 82) {
+        uint raceRandomInt = UniformRandomNumber.uniform(seed, 1000) + 1;
+        if (raceRandomInt >= 896 && raceRandomInt <= 910) {
             return IKnight.Race.Dwarf;
-        } else if (raceRandomInt >= 83 && raceRandomInt <= 85) {
+        } else if (raceRandomInt >= 911 && raceRandomInt <= 925) {
             return IKnight.Race.Orc;
-        } else if (raceRandomInt >= 86 && raceRandomInt <= 88) {
+        } else if (raceRandomInt >= 926 && raceRandomInt <= 940) {
             return IKnight.Race.Ogre;
-        } else if (raceRandomInt >= 89 && raceRandomInt <= 91) {
+        } else if (raceRandomInt >= 941 && raceRandomInt <= 955) {
             return IKnight.Race.Elf;
-        } else if (raceRandomInt >= 92 && raceRandomInt <= 94) {
+        } else if (raceRandomInt >= 956 && raceRandomInt <= 970) {
             return IKnight.Race.Halfling;
-        } else if (raceRandomInt >= 95 && raceRandomInt <= 97) {
+        } else if (raceRandomInt >= 971 && raceRandomInt <= 985) {
             return IKnight.Race.Undead;
-        } else if (raceRandomInt >= 98 && raceRandomInt <= 100) {
+        } else if (raceRandomInt >= 986 && raceRandomInt <= 1000) {
             return IKnight.Race.Gnome;
         }
         return IKnight.Race.Human;
@@ -188,11 +216,51 @@ contract KnightGenerator is Ownable, IKnightGenerator {
         }
     }
 
-    function _sortAttributes(uint8[7] memory attributes, IKnight.Race race) private pure {
+    function _sortAttributes(uint8[7] memory attributes, IKnight.Race race) private pure  {
         if (race != IKnight.Race.Human) {
             uint8 maxAttributeVal;
             uint maxAttributeIndex;
+            uint8 minAttributeVal;
+            uint minAttributeIndex;
             uint bonusAttributeIndex;
+            uint penaltyAttributeIndex;
+            // Define bonusAttributeIndex/penaltyAttributeIndex based on race
+            if (race == IKnight.Race.Orc) {
+                // Strength
+                bonusAttributeIndex = 0;
+                // Intelligence
+                penaltyAttributeIndex = 5;
+            } else if (race == IKnight.Race.Dwarf) {
+                // Vitality
+                bonusAttributeIndex = 1;
+                // Size
+                penaltyAttributeIndex = 2;
+            } else if (race == IKnight.Race.Ogre) {
+                // Size
+                bonusAttributeIndex = 2;
+                // Dexterity
+                penaltyAttributeIndex = 4;
+            } else if (race == IKnight.Race.Undead) {
+                // Stamina
+                bonusAttributeIndex = 3;
+                // Luck
+                penaltyAttributeIndex = 6;
+            } else if (race == IKnight.Race.Elf) {
+                // Dexterity
+                bonusAttributeIndex = 4;
+                // Strength
+                penaltyAttributeIndex = 0;
+            } else if (race == IKnight.Race.Gnome) {
+                // Intelligence
+                bonusAttributeIndex = 5;
+                // Size
+                penaltyAttributeIndex = 2;
+            } else if (race == IKnight.Race.Halfling) {
+                // Luck
+                bonusAttributeIndex = 6;
+                // Size
+                penaltyAttributeIndex = 2;
+            }
             // Find max attribute index + value
             for (uint i = 0;i < 7;i++) {
                 if (attributes[i] >= maxAttributeVal) {
@@ -200,39 +268,25 @@ contract KnightGenerator is Ownable, IKnightGenerator {
                     maxAttributeIndex = i;
                 }
             }
-            // Define bonusAttributeIndex based on race
-            if (race == IKnight.Race.Orc) {
-                // Strength
-                bonusAttributeIndex = 0;
-            } else if (race == IKnight.Race.Dwarf) {
-                // Vitality
-                bonusAttributeIndex = 1;
-            } else if (race == IKnight.Race.Ogre) {
-                // Size
-                bonusAttributeIndex = 2;
-            } else if (race == IKnight.Race.Undead) {
-                // Stamina
-                bonusAttributeIndex = 3;
-            } else if (race == IKnight.Race.Elf) {
-                // Dexterity
-                bonusAttributeIndex = 4;
-            } else if (race == IKnight.Race.Gnome) {
-                // Intelligence
-                bonusAttributeIndex = 5;
-            } else if (race == IKnight.Race.Halfling) {
-                // Luck
-                bonusAttributeIndex = 6;
-            }
-            // Switch maxAttributeIndex and bonusAttributeIndex values if bonusAttribute value is already max
+            // Switch maxAttributeIndex and bonusAttributeIndex values if bonusAttribute value is not already max
             if (bonusAttributeIndex != maxAttributeIndex) {
                 attributes[maxAttributeIndex] = attributes[bonusAttributeIndex];
                 attributes[bonusAttributeIndex] = maxAttributeVal;
             }
+            // Need to determine min attribute position AFTER we switch max
+            // Find min attribute index + value
+            for (uint i = 0;i < 7;i++) {
+                if (attributes[i] <= minAttributeVal || minAttributeVal == 0) {
+                    minAttributeVal = attributes[i];
+                    minAttributeIndex = i;
+                }
+            }
+            // Switch minAttributeIndex and penaltyAttributeIndex values if penaltyAttribute value is not already min
+            if (penaltyAttributeIndex != minAttributeIndex) {
+                attributes[minAttributeIndex] = attributes[penaltyAttributeIndex];
+                attributes[penaltyAttributeIndex] = minAttributeVal;
+            }
         }
-    }
-
-    function destroy() external onlyOwner {
-        selfdestruct(payable(msg.sender));
     }
 
 }
