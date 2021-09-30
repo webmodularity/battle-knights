@@ -2,16 +2,15 @@
 pragma solidity ^0.8.5;
 
 //import "hardhat/console.sol";
-import "@openzeppelin/contracts/token/ERC721/ERC721.sol";
 import "@openzeppelin/contracts/token/ERC721/extensions/ERC721Enumerable.sol";
-import "@openzeppelin/contracts/token/ERC721/extensions/ERC721Pausable.sol";
+import "@openzeppelin/contracts/security/Pausable.sol";
 import "@openzeppelin/contracts/access/AccessControl.sol";
 import "@openzeppelin/contracts/utils/Counters.sol";
 import "./IKnight.sol";
-import "./IBattle.sol";
 import "./IKnightGenerator.sol";
+import "./IBattle.sol";
 
-contract Knight is AccessControl, ERC721Enumerable, ERC721Pausable, IKnight {
+contract Knight is ERC721Enumerable, AccessControl, Pausable, IKnight {
     using Counters for Counters.Counter;
     Counters.Counter private _tokenIds;
     // Store Knight Metadata on chain
@@ -50,47 +49,6 @@ contract Knight is AccessControl, ERC721Enumerable, ERC721Pausable, IKnight {
         revokeRole(SYNCER_ROLE, account);
     }
 
-    function getName(uint256 tokenId) external view returns (string memory) {
-        require(_exists(tokenId));
-        return knights[tokenId].name;
-    }
-
-    function getRace(uint256 tokenId) external view returns (IKnight.Race) {
-        require(_exists(tokenId));
-        return knights[tokenId].race;
-    }
-
-    function getGender(uint256 tokenId) external view returns (IKnight.Gender) {
-        require(_exists(tokenId));
-        return knights[tokenId].gender;
-    }
-
-    function getAttributes(uint256 tokenId) external view returns (IKnight.Attributes memory) {
-        require(_exists(tokenId));
-        return knights[tokenId].attributes;
-    }
-
-    function getRecord(uint256 tokenId) external view returns (IKnight.Record memory) {
-        require(_exists(tokenId));
-        return knights[tokenId].record;
-    }
-
-    function getIsDead(uint256 tokenId) external view returns (bool) {
-        require(_exists(tokenId));
-        return knights[tokenId].isDead;
-    }
-
-    function mint() external {
-        _tokenIds.increment();
-        // Generate new random knight and add on chain
-        // Using pseudo-random for testing
-        knights[_tokenIds.current()] = knightGeneratorContract.generateNewRandomKnight(
-            uint(keccak256(abi.encode(_getPseudoRandom())))
-        );
-        // Mint Knight
-        _mint(msg.sender, _tokenIds.current());
-    }
-
     function mintSpecial(
         address to,
         string memory name,
@@ -120,6 +78,60 @@ contract Knight is AccessControl, ERC721Enumerable, ERC721Pausable, IKnight {
         _mint(to, _tokenIds.current());
     }
 
+    function togglePause() external onlyRole(DEFAULT_ADMIN_ROLE) {
+        if (!paused()) {
+            _pause();
+        } else {
+            _unpause();
+        }
+    }
+
+    function mint() public {
+        _tokenIds.increment();
+        // Generate new random knight and add on chain
+        // Using pseudo-random for testing
+        knights[_tokenIds.current()] = knightGeneratorContract.generateNewRandomKnight(
+            uint(keccak256(abi.encode(_getPseudoRandom())))
+        );
+        // Mint Knight
+        _mint(msg.sender, _tokenIds.current());
+    }
+
+    function burn(uint256 tokenId) public {
+        require(_isApprovedOrOwner(_msgSender(), tokenId), "Not approved");
+        _burn(tokenId);
+    }
+
+    function getName(uint256 tokenId) public view returns (string memory) {
+        require(_exists(tokenId));
+        return knights[tokenId].name;
+    }
+
+    function getRace(uint256 tokenId) public view returns (IKnight.Race) {
+        require(_exists(tokenId));
+        return knights[tokenId].race;
+    }
+
+    function getGender(uint256 tokenId) public view returns (IKnight.Gender) {
+        require(_exists(tokenId));
+        return knights[tokenId].gender;
+    }
+
+    function getAttributes(uint256 tokenId) public view returns (IKnight.Attributes memory) {
+        require(_exists(tokenId));
+        return knights[tokenId].attributes;
+    }
+
+    function getRecord(uint256 tokenId) public view returns (IKnight.Record memory) {
+        require(_exists(tokenId));
+        return knights[tokenId].record;
+    }
+
+    function getIsDead(uint256 tokenId) public view returns (bool) {
+        require(_exists(tokenId));
+        return knights[tokenId].isDead;
+    }
+
     function _getPseudoRandom() private view returns (uint) {
         return uint(keccak256(abi.encode(block.difficulty, block.timestamp, block.number)));
     }
@@ -128,8 +140,10 @@ contract Knight is AccessControl, ERC721Enumerable, ERC721Pausable, IKnight {
         address from,
         address to,
         uint256 tokenId
-    ) internal virtual override(ERC721Enumerable, ERC721Pausable) {
+    ) internal virtual override(ERC721Enumerable) {
         super._beforeTokenTransfer(from, to, tokenId);
+
+        require(!paused(), "Transfers paused");
     }
 
     /**
@@ -139,7 +153,7 @@ contract Knight is AccessControl, ERC721Enumerable, ERC721Pausable, IKnight {
     public
     view
     virtual
-    override(AccessControl, IERC165, ERC721, ERC721Enumerable)
+    override(AccessControl, IERC165, ERC721Enumerable)
     returns (bool)
     {
         return super.supportsInterface(interfaceId);

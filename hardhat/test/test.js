@@ -39,17 +39,17 @@ describe("Battle Knights", function () {
       const testFemaleNames = ["Colette", "Celeste", "Ellie", "Eva"];
       const testTitles = ["the Rogue", "the Patient", "the Viking", "the Crusher", "the Tainted", "the Crusader"];
       for (let i = 0;i < gameEnums.races.enum.length;i++) {
-        const maleNamesTx = await knightGeneratorContract.addNameData(
+        await knightGeneratorContract.addNameData(
             gameEnums.genders.findIndex("M"),
             i,
             testMaleNames
         );
-        const femaleNamesTx = await knightGeneratorContract.addNameData(
+        await knightGeneratorContract.addNameData(
             gameEnums.genders.findIndex("F"),
             i,
             testFemaleNames
         );
-        const titlesTx = await knightGeneratorContract.addTitleData(i, testTitles);
+        await knightGeneratorContract.addTitleData(i, testTitles);
         expect(await knightGeneratorContract.getNamesCount(
             gameEnums.genders.findIndex("M"),
             i
@@ -61,6 +61,18 @@ describe("Battle Knights", function () {
         expect(await knightGeneratorContract.getTitlesCount(i)).to.equal(6);
       }
     });
+
+    it("Should remove the last title", async function () {
+      for (let i = 0;i < gameEnums.races.enum.length;i++) {
+        await knightGeneratorContract.removeTitleData(i, "the Crusader");
+        expect(await knightGeneratorContract.getTitlesCount(i)).to.equal(5);
+      }
+    });
+
+    it("Revert any external calls to generateNewRandomKnight from outside Knight contract", async function () {
+      await expect(knightGeneratorContract.connect(signers[2]).generateNewRandomKnight(100)).to.be.reverted;
+    });
+
   });
 
   describe("Knight", function () {
@@ -112,6 +124,22 @@ describe("Battle Knights", function () {
       }
     });
 
+    it("Contract should be pausable and revert all transfers while paused", async function () {
+      const pauseTx = await knightContract.connect(signers[0]).togglePause();
+      // Try mint
+      await expect(knightContract.mint()).to.be.reverted;
+      // Try transfer
+      await expect(knightContract.connect(signers[1]).transferFrom(
+          signers[1].address,
+          signers[2].address,
+          1
+      )).to.be.reverted;
+      // Try burn
+      await expect(knightContract.connect(signers[1]).burn(1)).to.be.reverted;
+      const unpauseTx = await knightContract.connect(signers[0]).togglePause();
+      expect(await knightContract.totalSupply()).to.equal(testKnightAmount);
+    });
+
     // it("Should log some knights to console", async function () {
     //   for (let i = 1;i <= testKnightAmount;i++) {
     //     const knightName = await knightContract.getName(i);
@@ -129,4 +157,5 @@ describe("Battle Knights", function () {
     // });
 
   });
+
 });

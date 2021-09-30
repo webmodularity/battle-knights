@@ -1,7 +1,6 @@
 //SPDX-License-Identifier: UNLICENSED
 pragma solidity ^0.8.5;
 
-import "hardhat/console.sol";
 import "@openzeppelin/contracts/access/Ownable.sol";
 import "./IKnightGenerator.sol";
 import "./lib/UniformRandomNumber.sol";
@@ -51,12 +50,50 @@ contract KnightGenerator is Ownable, IKnightGenerator {
         }
     }
 
+    function removeNameData(
+        IKnight.Gender gender,
+        IKnight.Race race,
+        string calldata data
+    ) external override onlyOwner {
+        // Expensive do not use unless necessary
+        if (gender == IKnight.Gender.F) {
+            for (uint i = 0;i < femaleNames[race].length;i++) {
+                if (keccak256(abi.encodePacked(femaleNames[race][i])) == keccak256(abi.encodePacked(data))) {
+                    femaleNames[race][i] = femaleNames[race][femaleNames[race].length - 1];
+                    femaleNames[race].pop();
+                    break;
+                }
+            }
+        } else {
+            for (uint i = 0;i < maleNames[race].length;i++) {
+                if (keccak256(abi.encodePacked(maleNames[race][i])) == keccak256(abi.encodePacked(data))) {
+                    maleNames[race][i] = maleNames[race][maleNames[race].length - 1];
+                    maleNames[race].pop();
+                    break;
+                }
+            }
+        }
+    }
+
     function addTitleData(
         IKnight.Race race,
         string[] calldata data
     ) external override onlyOwner {
         for (uint i = 0;i < data.length;i++) {
             titles[race].push(data[i]);
+        }
+    }
+
+    function removeTitleData(
+        IKnight.Race race,
+        string calldata data
+    ) external override onlyOwner {
+        for (uint i = 0;i < titles[race].length;i++) {
+            if (keccak256(abi.encodePacked(titles[race][i])) == keccak256(abi.encodePacked(data))) {
+                titles[race][i] = titles[race][titles[race].length - 1];
+                titles[race].pop();
+                break;
+            }
         }
     }
 
