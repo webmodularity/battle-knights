@@ -10,7 +10,10 @@ interface IKnightGenerator {
     function removeNameData(IKnight.Gender gender, IKnight.Race race, string calldata data) external;
     function addTitleData(IKnight.Race race, string[] calldata data) external;
     function removeTitleData(IKnight.Race race, string calldata data) external;
+    function addActivePortraitIndex(IKnight.Gender gender, IKnight.Race race, uint16[] memory data) external;
+    function removeActivePortraitIndex(IKnight.Gender gender, IKnight.Race race, uint16 data) external;
     function getNamesCount(IKnight.Gender gender, IKnight.Race race) external view returns (uint);
     function getTitlesCount(IKnight.Race race) external view returns (uint);
+    function getActivePortraitsCount(IKnight.Gender gender, IKnight.Race race) external view returns (uint);
 
 }

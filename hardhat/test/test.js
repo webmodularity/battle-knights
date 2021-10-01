@@ -7,6 +7,12 @@ describe("Battle Knights", function () {
   let knightContract, knightGeneratorContract, battleContract;
   let signers = [];
   const testKnightAmount = 25;
+  // Test data
+  const testMaleNames = ["Rory", "Dan", "Cody", "Phil", "Alvaro"];
+  const testFemaleNames = ["Colette", "Celeste", "Ellie", "Eva"];
+  const testTitles = ["the Rogue", "the Patient", "the Viking", "the Crusher", "the Tainted", "the Crusader"];
+  const testMalePortraits = ["maKJHSYYSUYJSS", "maIUYUYUYUY", "maGHUDFGHSVBWY", "maHGTXBWSKJDG", "maHDFTSDFSHSC"];
+  const testFemalePortraits = ["feKJHSYYSUYJSS", "feIUYUYUYUY", "feGHUDFGHSVBWY", "feHGTXBWSKJDG", "feHDFTSDFSHSC"];
 
   before(async () => {
     signers = await ethers.getSigners();
@@ -34,10 +40,7 @@ describe("Battle Knights", function () {
   });
 
   describe("Knight Generator", function () {
-    it("Should seed knightGenerator contract with test names and titles for each race", async function () {
-      const testMaleNames = ["Rory", "Dan", "Cody", "Phil", "Alvaro"];
-      const testFemaleNames = ["Colette", "Celeste", "Ellie", "Eva"];
-      const testTitles = ["the Rogue", "the Patient", "the Viking", "the Crusher", "the Tainted", "the Crusader"];
+    it("Should seed knightGenerator contract with test names, titles, and portraits for each race", async function () {
       for (let i = 0;i < gameEnums.races.enum.length;i++) {
         await knightGeneratorContract.addNameData(
             gameEnums.genders.findIndex("M"),
@@ -50,6 +53,16 @@ describe("Battle Knights", function () {
             testFemaleNames
         );
         await knightGeneratorContract.addTitleData(i, testTitles);
+        await knightContract.addPortraitData(
+            gameEnums.genders.findIndex("M"),
+            i,
+            testMalePortraits
+        );
+        await knightContract.addPortraitData(
+            gameEnums.genders.findIndex("F"),
+            i,
+            testFemalePortraits
+        );
         expect(await knightGeneratorContract.getNamesCount(
             gameEnums.genders.findIndex("M"),
             i
@@ -59,17 +72,70 @@ describe("Battle Knights", function () {
             i
         )).to.equal(4);
         expect(await knightGeneratorContract.getTitlesCount(i)).to.equal(6);
+        expect(await knightGeneratorContract.getActivePortraitsCount(
+            gameEnums.genders.findIndex("M"),
+            i
+        )).to.equal(5);
+        expect(await knightGeneratorContract.getActivePortraitsCount(
+            gameEnums.genders.findIndex("F"),
+            i
+        )).to.equal(5);
       }
     });
 
-    it("Should remove the last title", async function () {
+    it("Should remove a random NAME from each race/gender", async function () {
       for (let i = 0;i < gameEnums.races.enum.length;i++) {
-        await knightGeneratorContract.removeTitleData(i, "the Crusader");
-        expect(await knightGeneratorContract.getTitlesCount(i)).to.equal(5);
+        await knightGeneratorContract.removeNameData(
+            gameEnums.genders.findIndex("F"),
+            i,
+            testFemaleNames[Math.floor(Math.random() * testFemaleNames.length)]
+        );
+        expect(await knightGeneratorContract.getNamesCount(
+            gameEnums.genders.findIndex("F"),
+            i
+        )).to.equal(testFemaleNames.length - 1);
+        await knightGeneratorContract.removeNameData(
+            gameEnums.genders.findIndex("M"),
+            i,
+            testMaleNames[Math.floor(Math.random() * testMaleNames.length)]);
+        expect(await knightGeneratorContract.getNamesCount(
+            gameEnums.genders.findIndex("M"),
+            i
+        )).to.equal(testMaleNames.length - 1);
       }
     });
 
-    it("Revert any external calls to generateNewRandomKnight from outside Knight contract", async function () {
+    it("Should remove a random TITLE from each race", async function () {
+      for (let i = 0;i < gameEnums.races.enum.length;i++) {
+        await knightGeneratorContract.removeTitleData(i, testTitles[Math.floor(Math.random() * testTitles.length)]);
+        expect(await knightGeneratorContract.getTitlesCount(i)).to.equal(testTitles.length - 1);
+      }
+    });
+
+    it("Should remove a random ACTIVE PORTRAIT from each race/gender", async function () {
+      for (let i = 0;i < gameEnums.races.enum.length;i++) {
+        await knightGeneratorContract.removeActivePortraitIndex(
+            gameEnums.genders.findIndex("F"),
+            i,
+            Math.floor(Math.random() * testFemalePortraits.length)
+        );
+        expect(await knightGeneratorContract.getActivePortraitsCount(
+            gameEnums.genders.findIndex("F"),
+            i
+        )).to.equal(testFemalePortraits.length - 1);
+        await knightGeneratorContract.removeActivePortraitIndex(
+            gameEnums.genders.findIndex("M"),
+            i,
+            Math.floor(Math.random() * testMalePortraits.length)
+        );
+        expect(await knightGeneratorContract.getActivePortraitsCount(
+            gameEnums.genders.findIndex("M"),
+            i
+        )).to.equal(testMalePortraits.length - 1);
+      }
+    });
+
+    it("Should revert any external calls to generateNewRandomKnight() method from outside Knight contract", async function () {
       await expect(knightGeneratorContract.connect(signers[2]).generateNewRandomKnight(100)).to.be.reverted;
     });
 

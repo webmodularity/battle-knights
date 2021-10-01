@@ -30,8 +30,12 @@ interface IKnight is IERC721Enumerable {
         Race race;
         Gender gender;
         Attributes attributes;
+        uint16 portraitId;
         Record record;
         bool isDead;
     }
+
+    function addPortraitData(IKnight.Gender gender, IKnight.Race race, string[] calldata data) external;
+    function getPortraitCid(IKnight.Gender gender, IKnight.Race race, uint16 portraitId) external view returns (string memory);
 
 }

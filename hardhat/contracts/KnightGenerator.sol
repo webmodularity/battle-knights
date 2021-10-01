@@ -16,6 +16,9 @@ contract KnightGenerator is Ownable, IKnightGenerator {
     mapping(IKnight.Race => string[]) private femaleNames;
     // Store Titles Data
     mapping(IKnight.Race => string[]) private titles;
+    // Store Active Portraits ids
+    mapping(IKnight.Race => uint16[]) private malePortraitsActive;
+    mapping(IKnight.Race => uint16[]) private femalePortraitsActive;
 
     constructor(address _knightContractAddress) {
         knightContractAddress = _knightContractAddress;
@@ -31,7 +34,8 @@ contract KnightGenerator is Ownable, IKnightGenerator {
             uint(keccak256(abi.encode(seed, 3)))
         );
         IKnight.Attributes memory attributes = _getRandomKnightAttributes(uint(keccak256(abi.encode(seed, 4))), race);
-        return IKnight.SKnight(name, race, gender, attributes, IKnight.Record(0,0,0,0), false);
+        uint16 portraitId = _getRandomPortraitId(gender, race, uint(keccak256(abi.encode(seed, 4))));
+        return IKnight.SKnight(name, race, gender, attributes, portraitId, IKnight.Record(0,0,0,0), false);
     }
 
     function addNameData(
@@ -97,6 +101,48 @@ contract KnightGenerator is Ownable, IKnightGenerator {
         }
     }
 
+    function addActivePortraitIndex(
+        IKnight.Gender gender,
+        IKnight.Race race,
+        uint16[] memory data
+    ) public override {
+        require(msg.sender == knightContractAddress || msg.sender == owner(), "Not authorized");
+        if (gender == IKnight.Gender.F) {
+            for (uint i = 0;i < data.length;i++) {
+                femalePortraitsActive[race].push(data[i]);
+            }
+        } else {
+            for (uint i = 0;i < data.length;i++) {
+                malePortraitsActive[race].push(data[i]);
+            }
+        }
+    }
+
+    function removeActivePortraitIndex(
+        IKnight.Gender gender,
+        IKnight.Race race,
+        uint16 data
+    ) external override onlyOwner {
+        // Expensive do not use unless necessary
+        if (gender == IKnight.Gender.F) {
+            for (uint16 i = 0;i < femalePortraitsActive[race].length;i++) {
+                if (femalePortraitsActive[race][i] == data) {
+                    femalePortraitsActive[race][i] = femalePortraitsActive[race][femalePortraitsActive[race].length - 1];
+                    femalePortraitsActive[race].pop();
+                    break;
+                }
+            }
+        } else {
+            for (uint16 i = 0;i < malePortraitsActive[race].length;i++) {
+                if (malePortraitsActive[race][i] == data) {
+                    malePortraitsActive[race][i] = malePortraitsActive[race][malePortraitsActive[race].length - 1];
+                    malePortraitsActive[race].pop();
+                    break;
+                }
+            }
+        }
+    }
+
     function getNamesCount(IKnight.Gender gender, IKnight.Race race) public view override returns (uint) {
         if (gender == IKnight.Gender.F) {
             return femaleNames[race].length;
@@ -107,6 +153,14 @@ contract KnightGenerator is Ownable, IKnightGenerator {
 
     function getTitlesCount(IKnight.Race race) public view override returns (uint) {
         return titles[race].length;
+    }
+
+    function getActivePortraitsCount(IKnight.Gender gender, IKnight.Race race) public view override returns (uint) {
+        if (gender == IKnight.Gender.F) {
+            return femalePortraitsActive[race].length;
+        } else {
+            return malePortraitsActive[race].length;
+        }
     }
 
     function destroy() external onlyOwner {
@@ -324,6 +378,16 @@ contract KnightGenerator is Ownable, IKnightGenerator {
                 attributes[penaltyAttributeIndex] = minAttributeVal;
             }
         }
+    }
+
+    function _getRandomPortraitId(IKnight.Gender gender, IKnight.Race race, uint seed) private view returns (uint16) {
+        uint totalActivePortraits = getActivePortraitsCount(gender, race);
+        if (totalActivePortraits == 0) {
+            revert("No active portraits");
+        } else if (totalActivePortraits == 1) {
+            return uint16(0);
+        }
+        return uint16(UniformRandomNumber.uniform(seed, totalActivePortraits));
     }
 
 }

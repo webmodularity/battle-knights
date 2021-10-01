@@ -15,6 +15,9 @@ contract Knight is ERC721Enumerable, AccessControl, Pausable, IKnight {
     Counters.Counter private _tokenIds;
     // Store Knight Metadata on chain
     mapping(uint256 => IKnight.SKnight) private knights;
+    // Store Portrait IPFS CIDs
+    mapping(IKnight.Race => string[]) private malePortraitMap;
+    mapping(IKnight.Race => string[]) private femalePortraitMap;
     //    Counters.Counter private _seasonIds;
     //    Counters.Counter private _battleIds;
     //    Counters.Counter private _fightIds;
@@ -49,33 +52,38 @@ contract Knight is ERC721Enumerable, AccessControl, Pausable, IKnight {
         revokeRole(SYNCER_ROLE, account);
     }
 
-    function mintSpecial(
-        address to,
-        string memory name,
-        IKnight.Race race,
+    function addPortraitData(
         IKnight.Gender gender,
-        uint8[7] calldata attributes
-    ) external onlyRole(DEFAULT_ADMIN_ROLE) {
-        _tokenIds.increment();
-        // Add Knight on chain
-        knights[_tokenIds.current()] = SKnight(
-            name,
-            race,
-            gender,
-            IKnight.Attributes(
-                attributes[0],
-                attributes[1],
-                attributes[2],
-                attributes[3],
-                attributes[4],
-                attributes[5],
-                attributes[6]
-            ),
-            IKnight.Record(0,0,0,0),
-            false
-        );
-        // Mint Knight
-        _mint(to, _tokenIds.current());
+        IKnight.Race race,
+        string[] calldata data
+    ) external override onlyRole(DEFAULT_ADMIN_ROLE) {
+        uint16[] memory newPortraitIds = new uint16[](data.length);
+        if (gender == IKnight.Gender.F) {
+            for (uint i = 0;i < data.length;i++) {
+                femalePortraitMap[race].push(data[i]);
+                newPortraitIds[i] = uint16(femalePortraitMap[race].length - 1);
+            }
+
+        } else {
+            for (uint i = 0;i < data.length;i++) {
+                malePortraitMap[race].push(data[i]);
+                newPortraitIds[i] = uint16(malePortraitMap[race].length - 1);
+            }
+        }
+        // Add these new CIDs to Active Portrait list of KnightGenerator
+        knightGeneratorContract.addActivePortraitIndex(gender, race, newPortraitIds);
+    }
+
+    function getPortraitCid(
+        IKnight.Gender gender,
+        IKnight.Race race,
+        uint16 portraitId
+    ) public view override returns (string memory) {
+        if (gender == IKnight.Gender.F) {
+            return femalePortraitMap[race][portraitId];
+        } else {
+            return malePortraitMap[race][portraitId];
+        }
     }
 
     function togglePause() external onlyRole(DEFAULT_ADMIN_ROLE) {
