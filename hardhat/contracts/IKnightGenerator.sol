@@ -5,7 +5,16 @@ import "./IKnight.sol";
 
 interface IKnightGenerator {
 
-    function generateNewRandomKnight(uint seed) external returns (IKnight.SKnight memory);
+    function randomKnightInit(uint seed) external returns (
+        string memory,
+        IKnight.Gender,
+        IKnight.Race,
+        uint16
+    );
+    function randomKnightAttributes(
+        uint seed,
+        IKnight.Race race
+    ) external returns (IKnight.Attributes memory);
     function addNameData(IKnight.Gender gender, IKnight.Race race, string[] calldata data) external;
     function removeNameData(IKnight.Gender gender, IKnight.Race race, string calldata data) external;
     function addTitleData(IKnight.Race race, string[] calldata data) external;

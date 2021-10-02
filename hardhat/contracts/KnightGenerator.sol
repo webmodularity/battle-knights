@@ -24,7 +24,9 @@ contract KnightGenerator is Ownable, IKnightGenerator {
         knightContractAddress = _knightContractAddress;
     }
 
-    function generateNewRandomKnight(uint seed) external override returns (IKnight.SKnight memory) {
+    function randomKnightInit(
+        uint seed
+    ) external override returns (string memory, IKnight.Gender, IKnight.Race, uint16) {
         require(msg.sender == knightContractAddress, "Only calls from knightContract allowed!");
         IKnight.Gender gender = _getRandomKnightGender(uint(keccak256(abi.encode(seed, 1))));
         IKnight.Race race = _getRandomKnightRace(uint(keccak256(abi.encode(seed, 2))));
@@ -33,9 +35,45 @@ contract KnightGenerator is Ownable, IKnightGenerator {
             race,
             uint(keccak256(abi.encode(seed, 3)))
         );
-        IKnight.Attributes memory attributes = _getRandomKnightAttributes(uint(keccak256(abi.encode(seed, 4))), race);
         uint16 portraitId = _getRandomPortraitId(gender, race, uint(keccak256(abi.encode(seed, 4))));
-        return IKnight.SKnight(name, race, gender, attributes, portraitId, IKnight.Record(0,0,0,0), false);
+        return (name, gender, race, portraitId);
+    }
+
+    function randomKnightAttributes(
+        uint seed,
+        IKnight.Race race
+    ) external override returns (IKnight.Attributes memory) {
+        require(msg.sender == knightContractAddress, "Only calls from knightContract allowed!");
+        uint8[7] memory attributes;
+        uint sum;
+        for (uint i = 1;i <= 6;i++) {
+            if (i == 1 || ((sum / i > 10) && (sum / i < 13))) {
+                attributes[i - 1] = uint8(Dice.rollDiceSet(3, 6, seed));
+            } else {
+                Dice.DiceBiasDirections diceBiasDirection = (sum / i < 10)
+                ? Dice.DiceBiasDirections.Up
+                : Dice.DiceBiasDirections.Down;
+                attributes[i - 1] = uint8(Dice.rollDiceSetBiased(3, 5, 6, seed, diceBiasDirection));
+            }
+            sum += attributes[i - 1];
+        }
+        if (sum >= 82 || sum <= 65) {
+            // Not possible to hit 84
+            return IKnight.Attributes(0, 0, 0, 0, 0, 0, 0);
+        } else {
+            attributes[6] = uint8(84 - sum);
+            _shuffleAttributes(attributes, uint(keccak256(abi.encode(seed, attributes[0], attributes[6]))));
+            _sortAttributes(attributes, race);
+            return IKnight.Attributes(
+                attributes[0],
+                    attributes[1],
+                    attributes[2],
+                    attributes[3],
+                    attributes[4],
+                    attributes[5],
+                    attributes[6]
+            );
+        }
     }
 
     function addNameData(
@@ -175,7 +213,7 @@ contract KnightGenerator is Ownable, IKnightGenerator {
         uint8 attempts;
         uint8 nameIndex;
         string memory uniqueRandomName;
-        while (attempts < 5) {
+        while (attempts < 4) {
             attempts++;
             uniqueRandomName = _getRandomName(
                 gender,
@@ -188,7 +226,7 @@ contract KnightGenerator is Ownable, IKnightGenerator {
                 return uniqueRandomName;
             }
         }
-        // Failed to find a unique name in 5 attempts - use this name + a roman numeral suffix
+        // Failed to find a unique name in 4 attempts - use this name + a roman numeral suffix
         if (nameIndex == 254) {
             // Reset back to 0
             delete usedKnightNames[keccak256(abi.encodePacked(uniqueRandomName))];
@@ -254,45 +292,6 @@ contract KnightGenerator is Ownable, IKnightGenerator {
     function _getRandomKnightGender(uint seed) private pure returns (IKnight.Gender) {
         uint genderRandomInt = UniformRandomNumber.uniform(seed, 10);
         return genderRandomInt >= 8 ? IKnight.Gender.F : IKnight.Gender.M;
-    }
-
-    function _getRandomKnightAttributes(uint seed, IKnight.Race race) private pure returns (IKnight.Attributes memory) {
-        uint attempts;
-        while (attempts < 3) {
-            uint8[7] memory attributes;
-            attempts++;
-            uint sum;
-            for (uint i = 1;i <= 6;i++) {
-                uint newSeed = uint(keccak256(abi.encode(seed, i + (attempts * 7))));
-                if (i == 1 || ((sum / i > 10) && (sum / i < 13))) {
-                    attributes[i - 1] = uint8(Dice.rollDiceSet(3, 6, newSeed));
-                } else {
-                    Dice.DiceBiasDirections diceBiasDirection = (sum / i < 10)
-                    ? Dice.DiceBiasDirections.Up
-                    : Dice.DiceBiasDirections.Down;
-                    attributes[i - 1] = uint8(Dice.rollDiceSetBiased(3, 5, 6, newSeed, diceBiasDirection));
-                }
-                sum += attributes[i - 1];
-            }
-            if (sum >= 82 || sum <= 65) {
-                // Not possible to hit 84, try again
-                continue;
-            }
-            attributes[6] = uint8(84 - sum);
-            _shuffleAttributes(attributes, uint(keccak256(abi.encode(seed, attributes[0], attributes[6]))));
-            _sortAttributes(attributes, race);
-            return IKnight.Attributes(
-                attributes[0],
-                attributes[1],
-                attributes[2],
-                attributes[3],
-                attributes[4],
-                attributes[5],
-                attributes[6]
-            );
-        }
-        // Fallback to 12s
-        return IKnight.Attributes(12, 12, 12, 12, 12, 12, 12);
     }
 
     function _shuffleAttributes(uint8[7] memory attributes, uint seed) private pure {
