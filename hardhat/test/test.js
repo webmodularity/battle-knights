@@ -3,22 +3,27 @@ const { ethers } = require("hardhat");
 
 const gameEnums = require("../scripts/gameEnums");
 
-describe("Battle Knights", function () {
-  let knightContract, knightGeneratorContract, battleContract;
-  let signers = [];
-  const testKnightAmount = 25;
-  // Test data
-  const testMaleNames = ["Rory", "Dan", "Cody", "Phil", "Alvaro"];
-  const testFemaleNames = ["Colette", "Celeste", "Ellie", "Eva"];
-  const testTitles = ["the Rogue", "the Patient", "the Viking", "the Crusher", "the Tainted", "the Crusader"];
-  const testMalePortraits = ["maKJHSYYSUYJSS", "maIUYUYUYUY", "maGHUDFGHSVBWY", "maHGTXBWSKJDG", "maHDFTSDFSHSC"];
-  const testFemalePortraits = ["feKJHSYYSUYJSS", "feIUYUYUYUY", "feGHUDFGHSVBWY", "feHGTXBWSKJDG", "feHDFTSDFSHSC"];
+let knightContract, knightGeneratorContract, battleContract;
+let signers = [];
+const testKnightAmount = 25;
+// Test data
+const testMaleNames = ["Rory", "Dan", "Cody", "Phil", "Alvaro"];
+const testFemaleNames = ["Colette", "Celeste", "Ellie", "Eva"];
+const testTitles = ["the Rogue", "the Patient", "the Viking", "the Crusher", "the Tainted", "the Crusader"];
+const testMalePortraits = ["maKJHSYYSUYJSS", "maIUYUYUYUY", "maGHUDFGHSVBWY", "maHGTXBWSKJDG", "maHDFTSDFSHSC"];
+const testFemalePortraits = ["feKJHSYYSUYJSS", "feIUYUYUYUY", "feGHUDFGHSVBWY", "feHGTXBWSKJDG", "feHDFTSDFSHSC"];
+// VRF - Mumbai Testnet
+const vrfCoordinatorAddress = "0x8C7382F9D8f56b33781fE506E897a4F1e2d17255";
+const vrfLinkAddress = "0x326C977E6efc84E512bB9C30f76E30c160eD06FB";
+const vrfKeyHash = "0x6e75b569a01ef56d18cab6a8e71e6600d6ce853834d4a5748b720d06f878b3a4";
+const vrfFee = .0001 * 10 ** 18;
 
+describe("Battle Knights", function () {
   before(async () => {
     signers = await ethers.getSigners();
     // Deploy Knight contract
     const knightFactory = await ethers.getContractFactory("Knight");
-    knightContract = await knightFactory.deploy();
+    knightContract = await knightFactory.deploy(vrfCoordinatorAddress, vrfLinkAddress, vrfKeyHash, vrfFee);
     // Wait for contract to deploy
     await knightContract.deployed();
     // Deploy KnightGenerator contract
@@ -143,36 +148,47 @@ describe("Battle Knights", function () {
 
   describe("Knight", function () {
     it(`Should mint ${testKnightAmount} randomly generated NFTs`, async function () {
+      let totalAttributeAttempts = 0;
       for (let i = 1;i <= testKnightAmount;i++) {
         const mintTx = await knightContract.connect(signers[1]).mint();
         const mintReceipt = await mintTx.wait();
         expect(await knightContract.ownerOf(i)).to.equal(signers[1].address);
-        const mint2Tx = await knightContract.connect(signers[1]).generateKnightInit(i);
+        const mint2Tx = await knightContract.connect(signers[1]).generateKnightInit(i, Math.floor(Math.random() * 10 ** 12));
         const mint2Receipt = await mint2Tx.wait();
+        //console.log(mint2Receipt.gasUsed.toNumber());
         // Need to be under 200k gas for VRF
         expect(mint2Receipt.gasUsed.toNumber()).to.be.below(200000);
-        const mint3Tx = await knightContract.connect(signers[1]).generateKnightAttributes(i);
-        const mint3Receipt = await mint3Tx.wait();
-        // Need to be under 200k gas for VRF
-        expect(mint3Receipt.gasUsed.toNumber()).to.be.below(200000);
-        //console.log(mint3Receipt.gasUsed.toNumber());
-        const mint4Tx = await knightContract.connect(signers[1]).commitNewKnight(i);
-        const mint4Receipt = await mint4Tx.wait();
-        //console.log(mint4Receipt.gasUsed.toNumber());
+        let attributeSum = 0;
+        let attributeAttempts = 0;
+        while (attributeSum !== 84) {
+          attributeAttempts++;
+          totalAttributeAttempts++;
+          const mint3Tx = await knightContract.connect(signers[1]).generateKnightAttributes(i, Math.floor(Math.random() * 10 ** 12));
+          const mint3Receipt = await mint3Tx.wait();
+          // Need to be under 200k gas for VRF
+          expect(mint3Receipt.gasUsed.toNumber()).to.be.below(200000);
+          //console.log(attributeAttempts + ": " + mint3Receipt.gasUsed.toNumber());
+          const knightAttributes = await knightContract.getAttributes(i);
+          let knightAttributesSum = 0;
+          for (let i = 0; i < 7; i++) {
+            attributeSum += knightAttributes[i];
+          }
+        }
       }
+      //console.log(`Total Attribute Attempts: ${totalAttributeAttempts} avg.: ${totalAttributeAttempts / testKnightAmount}/knight`)
     });
 
-    // it("Should store attributes on chain that are between 3-18 and sum to 84", async function () {
-    //   for (let i = 1;i <= testKnightAmount;i++) {
-    //     const knightAttributes = await knightContract.getAttributes(i);
-    //     let knightAttributesSum = 0;
-    //     for (let i = 0; i < 7; i++) {
-    //       expect(knightAttributes[i]).to.be.within(3, 18);
-    //       knightAttributesSum += knightAttributes[i];
-    //     }
-    //     expect(knightAttributesSum).to.equal(84);
-    //   }
-    // });
+    it("Should store attributes on chain that are between 3-18 and sum to 84", async function () {
+      for (let i = 1;i <= testKnightAmount;i++) {
+        const knightAttributes = await knightContract.getAttributes(i);
+        let knightAttributesSum = 0;
+        for (let i = 0; i < 7; i++) {
+          expect(knightAttributes[i]).to.be.within(3, 18);
+          knightAttributesSum += knightAttributes[i];
+        }
+        expect(knightAttributesSum).to.equal(84);
+      }
+    });
 
     it("Should store name on chain", async function () {
       for (let i = 1;i <= testKnightAmount;i++) {

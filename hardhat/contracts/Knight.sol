@@ -5,7 +5,6 @@ pragma solidity ^0.8.5;
 import "@openzeppelin/contracts/token/ERC721/extensions/ERC721Enumerable.sol";
 import "@openzeppelin/contracts/security/Pausable.sol";
 import "@openzeppelin/contracts/access/Ownable.sol";
-//import "@openzeppelin/contracts/access/AccessControl.sol";
 import "@openzeppelin/contracts/utils/Counters.sol";
 import "./IKnight.sol";
 import "./IKnightGenerator.sol";
@@ -17,32 +16,25 @@ contract Knight is ERC721Enumerable, Ownable, Pausable, IKnight, VRFConsumerBase
     Counters.Counter private _tokenIds;
     // Store Knight Metadata on chain
     mapping(uint256 => IKnight.SKnight) private knights;
-    // Minting
-    uint[] mintingKnightIds;
-    mapping(uint256 => IKnight.KnightMinting) private knightsMinting;
+    // VRF Request mapping to tokenId
+    mapping(bytes32 => uint) private randomRequestToTokenId;
+    uint vrfFee;
+    bytes32 vrfKeyHash;
     // Store Portrait IPFS CIDs
     mapping(IKnight.Race => string[]) private malePortraitMap;
     mapping(IKnight.Race => string[]) private femalePortraitMap;
-    //    Counters.Counter private _seasonIds;
-    //    Counters.Counter private _battleIds;
-    //    Counters.Counter private _fightIds;
-    // Access Control
-//    bytes32 public constant SYNCER_ROLE = keccak256("SYNCER_ROLE");
     // Store current Battle Contract
     IBattle private battleContract;
     // Store current Character Name Generator Contract
     IKnightGenerator private knightGeneratorContract;
 
 
-    constructor()
+    constructor(address _vrfCoordinator, address _link, bytes32 _keyHash, uint _fee)
         ERC721("Battle Knight Test", "KNGHT-TEST")
-        VRFConsumerBase(
-            0xdD3782915140c8f3b190B5D67eAc6dc5760C46E9, // VRF Coordinator
-            0xa36085F69e2889c224210F603D836748e7dC0088  // LINK Token
-        )
+        VRFConsumerBase(_vrfCoordinator, _link)
     {
-//        // Grant the contract deployer the default admin role: it will be able to grant and revoke any roles
-//        _setupRole(DEFAULT_ADMIN_ROLE, msg.sender);
+        vrfKeyHash = _keyHash;
+        vrfFee = _fee;
     }
 
     function changeKnightGeneratorContract(address knightGeneratorContractAddress) external onlyOwner {
@@ -53,13 +45,13 @@ contract Knight is ERC721Enumerable, Ownable, Pausable, IKnight, VRFConsumerBase
         battleContract = IBattle(battleContractAddress);
     }
 
-//    function addSyncerRole(address account) external onlyRole(DEFAULT_ADMIN_ROLE) {
-//        grantRole(SYNCER_ROLE, account);
-//    }
-//
-//    function removeSyncerRole(address account) external onlyRole(DEFAULT_ADMIN_ROLE) {
-//        revokeRole(SYNCER_ROLE, account);
-//    }
+    function changeVrfKeyHash(bytes32 _keyHash) external onlyOwner {
+        vrfKeyHash = _keyHash;
+    }
+
+    function changeVrfFee(uint _fee) external onlyOwner {
+        vrfFee = _fee;
+    }
 
     function addPortraitData(
         IKnight.Gender gender,
@@ -104,43 +96,24 @@ contract Knight is ERC721Enumerable, Ownable, Pausable, IKnight, VRFConsumerBase
     }
 
     function mint() public {
+//      require(LINK.balanceOf(address(this)) >= fee, "Not enough LINK - fill contract with faucet");
         _tokenIds.increment();
-        mintingKnightIds.push(_tokenIds.current());
+        uint tokenId = _tokenIds.current();
         // Mint Knight
-        _mint(msg.sender, _tokenIds.current());
-        //        require(LINK.balanceOf(address(this)) >= fee, "Not enough LINK - fill contract with faucet");
-        bytes32 keyHash = 0x6c3699283bda56ad74f6b855546325b68d482e983852a7a82979cc4807b641f4;
-        uint256 fee = 0.1 * 10 ** 18;
-        //bytes32 randomRequestId = requestRandomness(keyHash, fee);
-    }
-
-    function generateKnightInit(uint tokenId) external {
-        (
-        string memory name,
-        IKnight.Gender gender,
-        IKnight.Race race,
-        uint16 portraitId
-        ) = knightGeneratorContract.randomKnightInit(_getPseudoRandom());
-        knightsMinting[_tokenIds.current()] = KnightMinting(name, gender, race, portraitId, IKnight.Attributes(0, 0, 0, 0, 0, 0, 0));
-    }
-
-    function generateKnightAttributes(uint tokenId) external {
-        knightsMinting[_tokenIds.current()].attributes = knightGeneratorContract.randomKnightAttributes(
-            _getPseudoRandom(),
-            knightsMinting[tokenId].race
-        );
-    }
-
-    function commitNewKnight(uint tokenId) external {
-        knights[tokenId] = IKnight.SKnight(
-            knightsMinting[tokenId].name,
-            knightsMinting[tokenId].gender,
-            knightsMinting[tokenId].race,
-            knightsMinting[tokenId].attributes,
-            knightsMinting[tokenId].portraitId,
+        _mint(msg.sender, tokenId);
+        // Init empty SKnight for this tokenId
+        knights[tokenId] = SKnight(
+            "",
+            IKnight.Gender.M,
+            IKnight.Race.Human,
+            IKnight.Attributes(0, 0, 0, 0, 0, 0, 0),
+            0,
             IKnight.Record(0, 0, 0, 0),
-            false
+            false,
+            true
         );
+//        bytes32 randomRequestId = requestRandomness(vrfKeyHash, vrfFee);
+//        randomRequestToTokenId[randomRequestId] = tokenId;
     }
 
     function burn(uint256 tokenId) public {
@@ -168,10 +141,10 @@ contract Knight is ERC721Enumerable, Ownable, Pausable, IKnight, VRFConsumerBase
         return knights[tokenId].attributes;
     }
 
-//    function getRecord(uint256 tokenId) public view returns (IKnight.Record memory) {
-//        require(_exists(tokenId));
-//        return knights[tokenId].record;
-//    }
+    function getRecord(uint256 tokenId) public view returns (IKnight.Record memory) {
+        require(_exists(tokenId));
+        return knights[tokenId].record;
+    }
 
     function getIsDead(uint256 tokenId) public view returns (bool) {
         require(_exists(tokenId));
@@ -183,29 +156,41 @@ contract Knight is ERC721Enumerable, Ownable, Pausable, IKnight, VRFConsumerBase
     }
 
     /**
- * Requests randomness
- */
-    function getRandomNumber() public returns (bytes32 requestId) {
-//        require(LINK.balanceOf(address(this)) >= fee, "Not enough LINK - fill contract with faucet");
-        bytes32 keyHash = 0x6c3699283bda56ad74f6b855546325b68d482e983852a7a82979cc4807b641f4;
-        uint256 fee = 0.1 * 10 ** 18;
-        return requestRandomness(keyHash, fee);
-    }
-
-    /**
      * Callback function used by VRF Coordinator
      */
     function fulfillRandomness(bytes32 requestId, uint256 randomness) internal override {
-        // Generate new random knight and add on chain
-        // Using pseudo-random for testing
-        //knights[_tokenIds.current()] = knightGeneratorContract.generateNewRandomKnight(
-        //    uint(keccak256(abi.encode(_getPseudoRandom())))
-        //);
-        //        (IKnight.Gender gender, IKnight.Race race, uint16 portraitId) = knightGeneratorContract.initRandomKnight(
-        //            _tokenIds.current(),
-        //            _getPseudoRandom()
-        //        );
-        //        knightsMinting[_tokenIds.current()] = KnightMinting("", gender, race, portraitId);
+        uint tokenId = randomRequestToTokenId[requestId];
+        if (tokenId > 0 && knights[tokenId].isMinting == true) {
+            if (keccak256(abi.encodePacked(knights[tokenId].name)) == keccak256(abi.encodePacked(""))) {
+                // Init Knight
+                generateKnightInit(tokenId, randomness);
+                bytes32 randomRequestId = requestRandomness(vrfKeyHash, vrfFee);
+                randomRequestToTokenId[randomRequestId] = tokenId;
+            } else {
+                // Roll Attributes
+                generateKnightAttributes(tokenId, randomness);
+                if (knights[tokenId].attributes.strength != 0) {
+                    knights[tokenId].isMinting = false;
+                    // emit KnightMinted();
+                } else {
+                    // Reroll attributes, sum did not equal 84
+                    // Maybe limit attempts here
+                    bytes32 randomRequestId = requestRandomness(vrfKeyHash, vrfFee);
+                    randomRequestToTokenId[randomRequestId] = tokenId;
+                }
+            }
+            // GC old request
+            delete randomRequestToTokenId[requestId];
+        }
+    }
+
+    function generateKnightInit(uint tokenId, uint seed) public {
+        (knights[tokenId].name, knights[tokenId].gender, knights[tokenId].race, knights[tokenId].portraitId) =
+            knightGeneratorContract.randomKnightInit(seed);
+    }
+
+    function generateKnightAttributes(uint tokenId, uint seed) public {
+        knights[tokenId].attributes = knightGeneratorContract.randomKnightAttributes(seed, knights[tokenId].race);
     }
 
     function _beforeTokenTransfer(

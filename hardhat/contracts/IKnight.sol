@@ -33,14 +33,7 @@ interface IKnight is IERC721Enumerable {
         uint16 portraitId;
         Record record;
         bool isDead;
-    }
-
-    struct KnightMinting {
-        string name;
-        Gender gender;
-        Race race;
-        uint16 portraitId;
-        Attributes attributes;
+        bool isMinting;
     }
 
     function addPortraitData(IKnight.Gender gender, IKnight.Race race, string[] calldata data) external;
