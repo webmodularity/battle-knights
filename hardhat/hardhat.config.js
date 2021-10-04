@@ -1,6 +1,7 @@
 require("@nomiclabs/hardhat-waffle");
 require('hardhat-deploy');
-require("@nomiclabs/hardhat-ethers");
+require("hardhat-deploy-ethers");
+//require("@nomiclabs/hardhat-ethers");
 require('dotenv').config();
 
 // You need to export an object to set up your config

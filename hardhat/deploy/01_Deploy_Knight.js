@@ -26,7 +26,7 @@ module.exports = async ({getNamedAccounts, deployments, getChainId}) => {
         args: [vrfCoordinatorAddress, linkTokenAddress, keyHash, fee],
         log: true
     });
-    console.log();
+
     const knightGenerator = await deploy('KnightGenerator', {
         from: deployer,
         args: [knight.address],

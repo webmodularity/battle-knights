@@ -4,7 +4,6 @@ const { ethers } = require("hardhat");
 const gameEnums = require("../scripts/gameEnums");
 
 let knightContract, knightGeneratorContract, battleContract, linkToken, vrfCoordinatorMock;
-let signers = [];
 const testKnightAmount = 25;
 // Test data
 const testMaleNames = ["Rory", "Dan", "Cody", "Phil", "Alvaro"];
@@ -16,8 +15,6 @@ const testFemalePortraits = ["feKJHSYYSUYJSS", "feIUYUYUYUY", "feGHUDFGHSVBWY", 
 describe("Battle Knights", function () {
   before(async () => {
     await deployments.fixture(['mocks', 'knight']);
-    signers = await ethers.getSigners();
-
     const LinkToken = await deployments.get('LinkToken');
     linkToken = await ethers.getContractAt('LinkToken', LinkToken.address);
     const Knight = await deployments.get('Knight');
@@ -124,20 +121,22 @@ describe("Battle Knights", function () {
       }
     });
 
-    // it("Should revert any external calls to generateNewRandomKnight() method from outside Knight contract", async function () {
-    //   await expect(knightGeneratorContract.connect(signers[2]).generateNewRandomKnight(100)).to.be.reverted;
-    // });
+    it("Should revert any external calls to this contract from outside Knight contract", async function () {
+      await expect(knightGeneratorContract.randomKnightInit(1)).to.be.reverted;
+      await expect(knightGeneratorContract.randomKnightAttributes(1)).to.be.reverted;
+    });
 
   });
 
   describe("Knight", function () {
     it(`Should mint ${testKnightAmount} randomly generated NFTs`, async function () {
       let totalAttributeAttempts = 0;
+      const {deployer, syncer} = await ethers.getNamedSigners();
       for (let i = 1;i <= testKnightAmount;i++) {
-        const mintTx = await knightContract.connect(signers[1]).mint();
+        const mintTx = await knightContract.connect(syncer).mint();
         const mintReceipt = await mintTx.wait();
-        expect(await knightContract.ownerOf(i)).to.equal(signers[1].address);
-        const mint2Tx = await knightContract.connect(signers[1]).generateKnightInit(i, Math.floor(Math.random() * 10 ** 12));
+        expect(await knightContract.ownerOf(i)).to.equal(syncer.address);
+        const mint2Tx = await knightContract.connect(syncer).generateKnightInit(i, Math.floor(Math.random() * 10 ** 12));
         const mint2Receipt = await mint2Tx.wait();
         //console.log(mint2Receipt.gasUsed.toNumber());
         // Need to be under 200k gas for VRF
@@ -147,7 +146,7 @@ describe("Battle Knights", function () {
         while (attributeSum !== 84) {
           attributeAttempts++;
           totalAttributeAttempts++;
-          const mint3Tx = await knightContract.connect(signers[1]).generateKnightAttributes(i, Math.floor(Math.random() * 10 ** 12));
+          const mint3Tx = await knightContract.connect(syncer).generateKnightAttributes(i, Math.floor(Math.random() * 10 ** 12));
           const mint3Receipt = await mint3Tx.wait();
           // Need to be under 200k gas for VRF
           expect(mint3Receipt.gasUsed.toNumber()).to.be.below(200000);
@@ -203,18 +202,19 @@ describe("Battle Knights", function () {
     });
 
     it("Contract should be pausable and revert all transfers while paused", async function () {
-      const pauseTx = await knightContract.connect(signers[0]).togglePause();
+      const {deployer, syncer} = await ethers.getNamedSigners();
+      const pauseTx = await knightContract.connect(deployer).togglePause();
       // Try mint
       await expect(knightContract.mint()).to.be.reverted;
       // Try transfer
-      await expect(knightContract.connect(signers[1]).transferFrom(
-          signers[1].address,
-          signers[2].address,
+      await expect(knightContract.connect(syncer).transferFrom(
+          deployer.address,
+          syncer.address,
           1
       )).to.be.reverted;
       // Try burn
-      await expect(knightContract.connect(signers[1]).burn(1)).to.be.reverted;
-      const unpauseTx = await knightContract.connect(signers[0]).togglePause();
+      await expect(knightContract.connect(syncer).burn(1)).to.be.reverted;
+      const unpauseTx = await knightContract.connect(deployer).togglePause();
       expect(await knightContract.totalSupply()).to.equal(testKnightAmount);
     });
 
