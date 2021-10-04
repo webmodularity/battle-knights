@@ -3,7 +3,7 @@ const { ethers } = require("hardhat");
 
 const gameEnums = require("../scripts/gameEnums");
 
-let knightContract, knightGeneratorContract, battleContract;
+let knightContract, knightGeneratorContract, battleContract, linkToken, vrfCoordinatorMock;
 let signers = [];
 const testKnightAmount = 25;
 // Test data
@@ -12,36 +12,20 @@ const testFemaleNames = ["Colette", "Celeste", "Ellie", "Eva"];
 const testTitles = ["the Rogue", "the Patient", "the Viking", "the Crusher", "the Tainted", "the Crusader"];
 const testMalePortraits = ["maKJHSYYSUYJSS", "maIUYUYUYUY", "maGHUDFGHSVBWY", "maHGTXBWSKJDG", "maHDFTSDFSHSC"];
 const testFemalePortraits = ["feKJHSYYSUYJSS", "feIUYUYUYUY", "feGHUDFGHSVBWY", "feHGTXBWSKJDG", "feHDFTSDFSHSC"];
-// VRF - Mumbai Testnet
-const vrfCoordinatorAddress = "0x8C7382F9D8f56b33781fE506E897a4F1e2d17255";
-const vrfLinkAddress = "0x326C977E6efc84E512bB9C30f76E30c160eD06FB";
-const vrfKeyHash = "0x6e75b569a01ef56d18cab6a8e71e6600d6ce853834d4a5748b720d06f878b3a4";
-const vrfFee = .0001 * 10 ** 18;
 
 describe("Battle Knights", function () {
   before(async () => {
+    await deployments.fixture(['mocks', 'knight']);
     signers = await ethers.getSigners();
-    // Deploy Knight contract
-    const knightFactory = await ethers.getContractFactory("Knight");
-    knightContract = await knightFactory.deploy(vrfCoordinatorAddress, vrfLinkAddress, vrfKeyHash, vrfFee);
-    // Wait for contract to deploy
-    await knightContract.deployed();
-    // Deploy KnightGenerator contract
-    const knightGeneratorFactory = await ethers.getContractFactory("KnightGenerator");
-    knightGeneratorContract = await knightGeneratorFactory.deploy(knightContract.address);
-    // Wait for contract to deploy
-    await knightGeneratorContract.deployed();
-    // Deploy Battle contract
-    const battleFactory = await ethers.getContractFactory("Battle");
-    battleContract = await battleFactory.deploy();
-    // Wait for contract to deploy
-    await knightGeneratorContract.deployed();
-    // Set nameGenerator contract
-    await knightContract.changeKnightGeneratorContract(knightGeneratorContract.address);
-    // Set Battle contract
-    await knightContract.changeBattleContract(battleContract.address);
-    // // Set SYNCER_ROLE for signers[1]
-    // await knightContract.addSyncerRole(signers[1].address);
+
+    const LinkToken = await deployments.get('LinkToken');
+    linkToken = await ethers.getContractAt('LinkToken', LinkToken.address);
+    const Knight = await deployments.get('Knight');
+    knightContract = await ethers.getContractAt('Knight', Knight.address);
+    const KnightGenerator = await deployments.get('KnightGenerator');
+    knightGeneratorContract = await ethers.getContractAt('KnightGenerator', KnightGenerator.address);
+    const VRFCoordinatorMock = await deployments.get('VRFCoordinatorMock');
+    vrfCoordinatorMock = await ethers.getContractAt('VRFCoordinatorMock', VRFCoordinatorMock.address);
   });
 
   describe("Knight Generator", function () {
