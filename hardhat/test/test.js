@@ -132,7 +132,6 @@ describe("Battle Knights", function () {
 
   describe("Knight", function () {
     it(`Should mint ${testKnightAmount} randomly generated NFTs`, async function () {
-      let totalAttributeAttempts = 0;
       const {deployer, syncer} = await ethers.getNamedSigners();
       for (let i = 1;i <= testKnightAmount;i++) {
         const mintTx = await knightContract.connect(syncer).mint();
@@ -141,17 +140,17 @@ describe("Battle Knights", function () {
         const initTx = await vrfCoordinatorMock.callBackWithRandomness(mintRequestId, Math.floor(Math.random() * 10 ** 12), knightContract.address);
         const initTxReceipt = await initTx.wait();
         const initTxRequestId = initTxReceipt.events[3].data;
-        let firstAttributeValue = 0;
         let attributesTxRequestId = initTxRequestId;
-        while (firstAttributeValue == 0) {
+        let attributeAttempts = 0;
+        while (attributeAttempts < 10) {
+          attributeAttempts++;
           const attributesTx = await vrfCoordinatorMock.callBackWithRandomness(attributesTxRequestId, Math.floor(Math.random() * 10 ** 12), knightContract.address);
           const attributesTxReceipt = await attributesTx.wait();
-          if (attributesTxReceipt.events.length > 0) {
-            attributesTxRequestId = attributesTxReceipt.events[3].data;
-          } else {
-            const currentAttributes = await knightContract.getAttributes(i);
-            firstAttributeValue = currentAttributes[0];
+          if (attributesTxReceipt.events.length == 0) {
+            // Attributes were in range
+            break;
           }
+          attributesTxRequestId = attributesTxReceipt.events[3].data;
         }
         expect(await knightContract.ownerOf(i)).to.equal(syncer.address);
       }
@@ -214,16 +213,16 @@ describe("Battle Knights", function () {
       expect(await knightContract.totalSupply()).to.equal(testKnightAmount);
     });
 
-    // it("Should log some knights to console", async function () {
-    //   for (let i = 1;i <= testKnightAmount;i++) {
-    //     const knightName = await knightContract.getName(i);
-    //     const knightRace = gameEnums.races.enum[await knightContract.getRace(i)];
-    //     const knightGender = gameEnums.genders.enum[await knightContract.getGender(i)];
-    //     const knightAttributes = await knightContract.getAttributes(i);
-    //     console.log(`${knightName} ${knightGender} ${knightRace}`);
-    //     console.log(`${knightAttributes[0]}, ${knightAttributes[1]}, ${knightAttributes[2]}, ${knightAttributes[3]}, ${knightAttributes[4]}, ${knightAttributes[5]}, ${knightAttributes[6]}`);
-    //   }
-    // });
+    it("Should log some knights to console", async function () {
+      for (let i = 1;i <= testKnightAmount;i++) {
+        const knightName = await knightContract.getName(i);
+        const knightRace = gameEnums.races.enum[await knightContract.getRace(i)];
+        const knightGender = gameEnums.genders.enum[await knightContract.getGender(i)];
+        const knightAttributes = await knightContract.getAttributes(i);
+        console.log(`${knightName} ${knightGender} ${knightRace}`);
+        console.log(`${knightAttributes[0]}, ${knightAttributes[1]}, ${knightAttributes[2]}, ${knightAttributes[3]}, ${knightAttributes[4]}, ${knightAttributes[5]}, ${knightAttributes[6]}`);
+      }
+    });
 
   });
 
