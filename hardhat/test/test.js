@@ -23,6 +23,8 @@ describe("Battle Knights", function () {
     knightGeneratorContract = await ethers.getContractAt('KnightGenerator', KnightGenerator.address);
     const VRFCoordinatorMock = await deployments.get('VRFCoordinatorMock');
     vrfCoordinatorMock = await ethers.getContractAt('VRFCoordinatorMock', VRFCoordinatorMock.address);
+    // Transfer LINK
+    await linkToken.transfer(knightContract.address, '200000000000000000000');
   });
 
   describe("Knight Generator", function () {
@@ -135,30 +137,24 @@ describe("Battle Knights", function () {
       for (let i = 1;i <= testKnightAmount;i++) {
         const mintTx = await knightContract.connect(syncer).mint();
         const mintReceipt = await mintTx.wait();
-        expect(await knightContract.ownerOf(i)).to.equal(syncer.address);
-        const mint2Tx = await knightContract.connect(syncer).generateKnightInit(i, Math.floor(Math.random() * 10 ** 12));
-        const mint2Receipt = await mint2Tx.wait();
-        //console.log(mint2Receipt.gasUsed.toNumber());
-        // Need to be under 200k gas for VRF
-        expect(mint2Receipt.gasUsed.toNumber()).to.be.below(200000);
-        let attributeSum = 0;
-        let attributeAttempts = 0;
-        while (attributeSum !== 84) {
-          attributeAttempts++;
-          totalAttributeAttempts++;
-          const mint3Tx = await knightContract.connect(syncer).generateKnightAttributes(i, Math.floor(Math.random() * 10 ** 12));
-          const mint3Receipt = await mint3Tx.wait();
-          // Need to be under 200k gas for VRF
-          expect(mint3Receipt.gasUsed.toNumber()).to.be.below(200000);
-          //console.log(attributeAttempts + ": " + mint3Receipt.gasUsed.toNumber());
-          const knightAttributes = await knightContract.getAttributes(i);
-          let knightAttributesSum = 0;
-          for (let i = 0; i < 7; i++) {
-            attributeSum += knightAttributes[i];
+        const mintRequestId = mintReceipt.events[4].data;
+        const initTx = await vrfCoordinatorMock.callBackWithRandomness(mintRequestId, Math.floor(Math.random() * 10 ** 12), knightContract.address);
+        const initTxReceipt = await initTx.wait();
+        const initTxRequestId = initTxReceipt.events[3].data;
+        let firstAttributeValue = 0;
+        let attributesTxRequestId = initTxRequestId;
+        while (firstAttributeValue == 0) {
+          const attributesTx = await vrfCoordinatorMock.callBackWithRandomness(attributesTxRequestId, Math.floor(Math.random() * 10 ** 12), knightContract.address);
+          const attributesTxReceipt = await attributesTx.wait();
+          if (attributesTxReceipt.events.length > 0) {
+            attributesTxRequestId = attributesTxReceipt.events[3].data;
+          } else {
+            const currentAttributes = await knightContract.getAttributes(i);
+            firstAttributeValue = currentAttributes[0];
           }
         }
+        expect(await knightContract.ownerOf(i)).to.equal(syncer.address);
       }
-      //console.log(`Total Attribute Attempts: ${totalAttributeAttempts} avg.: ${totalAttributeAttempts / testKnightAmount}/knight`)
     });
 
     it("Should store attributes on chain that are between 3-18 and sum to 84", async function () {
@@ -224,11 +220,6 @@ describe("Battle Knights", function () {
     //     const knightRace = gameEnums.races.enum[await knightContract.getRace(i)];
     //     const knightGender = gameEnums.genders.enum[await knightContract.getGender(i)];
     //     const knightAttributes = await knightContract.getAttributes(i);
-    //     let knightAttributesSum = 0;
-    //     for (let i = 0; i < 7; i++) {
-    //       expect(knightAttributes[i]).to.be.within(3, 18);
-    //       knightAttributesSum += knightAttributes[i];
-    //     }
     //     console.log(`${knightName} ${knightGender} ${knightRace}`);
     //     console.log(`${knightAttributes[0]}, ${knightAttributes[1]}, ${knightAttributes[2]}, ${knightAttributes[3]}, ${knightAttributes[4]}, ${knightAttributes[5]}, ${knightAttributes[6]}`);
     //   }
