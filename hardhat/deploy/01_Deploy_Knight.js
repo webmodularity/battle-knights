@@ -1,4 +1,5 @@
 const {networkConfig} = require('../helper-hardhat-config');
+const hre = require("hardhat");
 
 module.exports = async ({getNamedAccounts, deployments, getChainId}) => {
     const {deploy, get, execute} = deployments;
@@ -6,14 +7,12 @@ module.exports = async ({getNamedAccounts, deployments, getChainId}) => {
     const chainId = await getChainId();
     let linkTokenAddress;
     let vrfCoordinatorAddress;
-    let additionalMessage = ""
 
     if (chainId == 31337) {
-        linkToken = await get('LinkToken');
-        VRFCoordinatorMock = await get('VRFCoordinatorMock');
+        const linkToken = await get('LinkToken');
+        const VRFCoordinatorMock = await get('VRFCoordinatorMock');
         linkTokenAddress = linkToken.address;
         vrfCoordinatorAddress = VRFCoordinatorMock.address;
-        additionalMessage = " --linkaddress " + linkTokenAddress;
     } else {
         linkTokenAddress = networkConfig[chainId]['linkToken']
         vrfCoordinatorAddress = networkConfig[chainId]['vrfCoordinator']
@@ -26,6 +25,12 @@ module.exports = async ({getNamedAccounts, deployments, getChainId}) => {
         args: [vrfCoordinatorAddress, linkTokenAddress, keyHash, fee],
         log: true
     });
+
+    if (chainId == 31337) {
+        // Transfer LINK
+        const linkContract = await hre.ethers.getContractAt("LinkToken", linkTokenAddress);
+        await linkContract.transfer(knight.address, '200000000000000000000');
+    }
 
     const knightGenerator = await deploy('KnightGenerator', {
         from: deployer,

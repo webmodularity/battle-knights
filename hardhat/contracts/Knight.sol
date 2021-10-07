@@ -18,6 +18,7 @@ contract Knight is ERC721Enumerable, Ownable, Pausable, IKnight, VRFConsumerBase
     mapping(uint256 => IKnight.SKnight) private knights;
     // VRF Request mapping to tokenId
     mapping(bytes32 => uint) private randomRequestToTokenId;
+    mapping(uint => uint) private tokenIdToSeed;
     uint vrfFee;
     bytes32 vrfKeyHash;
     // Store Portrait IPFS CIDs
@@ -119,6 +120,22 @@ contract Knight is ERC721Enumerable, Ownable, Pausable, IKnight, VRFConsumerBase
         randomRequestToTokenId[randomRequestId] = tokenId;
     }
 
+    function generateKnight(uint tokenId) public {
+        require(_exists(tokenId));
+        require(knights[tokenId].isMinting == true);
+        require(tokenIdToSeed[tokenId] > 0);
+        uint seed = uint(keccak256(abi.encode(block.timestamp, tokenIdToSeed[tokenId], block.difficulty)));
+        (knights[tokenId].name, knights[tokenId].gender, knights[tokenId].race, knights[tokenId].portraitId) =
+        knightGeneratorContract.randomKnightInit(seed);
+        // Roll Attributes
+        knights[tokenId].attributes = knightGeneratorContract.randomKnightAttributes(
+            uint(keccak256(abi.encode(seed, _tokenIds.current()))),
+            knights[tokenId].race
+        );
+        // Finished generating
+        knights[tokenId].isMinting = false;
+    }
+
     function burn(uint256 tokenId) public {
         require(_isApprovedOrOwner(_msgSender(), tokenId), "Not approved");
         _burn(tokenId);
@@ -144,10 +161,10 @@ contract Knight is ERC721Enumerable, Ownable, Pausable, IKnight, VRFConsumerBase
         return knights[tokenId].attributes;
     }
 
-    function getRecord(uint256 tokenId) public view returns (IKnight.Record memory) {
-        require(_exists(tokenId));
-        return knights[tokenId].record;
-    }
+//    function getRecord(uint256 tokenId) public view returns (IKnight.Record memory) {
+//        require(_exists(tokenId));
+//        return knights[tokenId].record;
+//    }
 
     function getIsDead(uint256 tokenId) public view returns (bool) {
         require(_exists(tokenId));
@@ -165,38 +182,10 @@ contract Knight is ERC721Enumerable, Ownable, Pausable, IKnight, VRFConsumerBase
     function fulfillRandomness(bytes32 requestId, uint256 randomness) internal override {
         uint tokenId = randomRequestToTokenId[requestId];
         if (tokenId > 0 && knights[tokenId].isMinting == true) {
-            if (keccak256(abi.encodePacked(knights[tokenId].name)) == keccak256(abi.encodePacked(""))) {
-                // Init Knight
-                generateKnightInit(tokenId, randomness);
-                bytes32 randomRequestId = requestRandomness(vrfKeyHash, vrfFee);
-                randomRequestToTokenId[randomRequestId] = tokenId;
-                emit RequestedRandomness(randomRequestId);
-            } else {
-                // Roll Attributes
-                generateKnightAttributes(tokenId, randomness);
-                if (knights[tokenId].attributes.strength != 0) {
-                    knights[tokenId].isMinting = false;
-                    // emit KnightMinted();
-                } else {
-                    // Reroll attributes, sum did not equal 84
-                    // Maybe limit attempts here
-                    bytes32 randomRequestId = requestRandomness(vrfKeyHash, vrfFee);
-                    randomRequestToTokenId[randomRequestId] = tokenId;
-                    emit RequestedRandomness(randomRequestId);
-                }
-            }
-            // GC old request
+            tokenIdToSeed[tokenId] = randomness;
+            // Clear request
             delete randomRequestToTokenId[requestId];
         }
-    }
-
-    function generateKnightInit(uint tokenId, uint seed) internal {
-        (knights[tokenId].name, knights[tokenId].gender, knights[tokenId].race, knights[tokenId].portraitId) =
-            knightGeneratorContract.randomKnightInit(seed);
-    }
-
-    function generateKnightAttributes(uint tokenId, uint seed) internal {
-        knights[tokenId].attributes = knightGeneratorContract.randomKnightAttributes(seed, knights[tokenId].race);
     }
 
     function _beforeTokenTransfer(
@@ -207,6 +196,10 @@ contract Knight is ERC721Enumerable, Ownable, Pausable, IKnight, VRFConsumerBase
         super._beforeTokenTransfer(from, to, tokenId);
 
         require(!paused(), "Transfers paused");
+    }
+
+    function destroy() external onlyOwner {
+        selfdestruct(payable(msg.sender));
     }
 
 }

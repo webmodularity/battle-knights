@@ -23,8 +23,6 @@ describe("Battle Knights", function () {
     knightGeneratorContract = await ethers.getContractAt('KnightGenerator', KnightGenerator.address);
     const VRFCoordinatorMock = await deployments.get('VRFCoordinatorMock');
     vrfCoordinatorMock = await ethers.getContractAt('VRFCoordinatorMock', VRFCoordinatorMock.address);
-    // Transfer LINK
-    await linkToken.transfer(knightContract.address, '200000000000000000000');
   });
 
   describe("Knight Generator", function () {
@@ -138,20 +136,20 @@ describe("Battle Knights", function () {
         const mintReceipt = await mintTx.wait();
         const mintRequestId = mintReceipt.events[4].data;
         const initTx = await vrfCoordinatorMock.callBackWithRandomness(mintRequestId, Math.floor(Math.random() * 10 ** 12), knightContract.address);
-        const initTxReceipt = await initTx.wait();
-        const initTxRequestId = initTxReceipt.events[3].data;
-        let attributesTxRequestId = initTxRequestId;
-        let attributeAttempts = 0;
-        while (attributeAttempts < 10) {
-          attributeAttempts++;
-          const attributesTx = await vrfCoordinatorMock.callBackWithRandomness(attributesTxRequestId, Math.floor(Math.random() * 10 ** 12), knightContract.address);
-          const attributesTxReceipt = await attributesTx.wait();
-          if (attributesTxReceipt.events.length == 0) {
-            // Attributes were in range
-            break;
-          }
-          attributesTxRequestId = attributesTxReceipt.events[3].data;
-        }
+        const generateTx = await knightContract.connect(syncer).generateKnight(i);
+        // const initTxRequestId = initTxReceipt.events[3].data;
+        // let attributesTxRequestId = initTxRequestId;
+        // let attributeAttempts = 0;
+        // while (attributeAttempts < 10) {
+        //   attributeAttempts++;
+        //   const attributesTx = await vrfCoordinatorMock.callBackWithRandomness(attributesTxRequestId, Math.floor(Math.random() * 10 ** 12), knightContract.address);
+        //   const attributesTxReceipt = await attributesTx.wait();
+        //   if (attributesTxReceipt.events.length == 0) {
+        //     // Attributes were in range
+        //     break;
+        //   }
+        //   attributesTxRequestId = attributesTxReceipt.events[3].data;
+        // }
         expect(await knightContract.ownerOf(i)).to.equal(syncer.address);
       }
     });

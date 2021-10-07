@@ -45,36 +45,43 @@ contract KnightGenerator is Ownable, IKnightGenerator {
         IKnight.Race race
     ) external override returns (IKnight.Attributes memory) {
         require(msg.sender == knightContractAddress, "Only calls from knightContract allowed!");
-        uint8[7] memory attributes;
-        uint sum;
-        for (uint i = 1;i <= 6;i++) {
-            if (i == 1 || ((sum / i > 10) && (sum / i < 13))) {
-                attributes[i - 1] = uint8(Dice.rollDiceSet(3, 6, seed));
-            } else {
-                Dice.DiceBiasDirections diceBiasDirection = (sum / i < 10)
-                ? Dice.DiceBiasDirections.Up
-                : Dice.DiceBiasDirections.Down;
-                attributes[i - 1] = uint8(Dice.rollDiceSetBiased(3, 5, 6, seed, diceBiasDirection));
+        uint attempts;
+        while (attempts < 3) {
+            uint8[7] memory attributes;
+            attempts++;
+            uint sum;
+            for (uint i = 1;i <= 6;i++) {
+                uint newSeed = uint(keccak256(abi.encode(seed, i + (attempts * 7))));
+                if (i == 1 || ((sum / i > 10) && (sum / i < 13))) {
+                    attributes[i - 1] = uint8(Dice.rollDiceSet(3, 6, newSeed));
+                } else {
+                    Dice.DiceBiasDirections diceBiasDirection = (sum / i < 10)
+                    ? Dice.DiceBiasDirections.Up
+                    : Dice.DiceBiasDirections.Down;
+                    attributes[i - 1] = uint8(Dice.rollDiceSetBiased(3, 5, 6, newSeed, diceBiasDirection));
+                }
+                sum += attributes[i - 1];
             }
-            sum += attributes[i - 1];
-        }
-        if (sum >= 82 || sum <= 65) {
-            // Not possible to hit 84
-            return IKnight.Attributes(0, 0, 0, 0, 0, 0, 0);
-        } else {
-            attributes[6] = uint8(84 - sum);
-            _shuffleAttributes(attributes, uint(keccak256(abi.encode(seed, attributes[0], attributes[6]))));
-            _sortAttributes(attributes, race);
-            return IKnight.Attributes(
-                attributes[0],
+            if (sum >= 82 || sum <= 65) {
+                // Not possible to hit 84
+                continue;
+            } else {
+                attributes[6] = uint8(84 - sum);
+                _shuffleAttributes(attributes, uint(keccak256(abi.encode(seed, attributes[0], attributes[6]))));
+                _sortAttributes(attributes, race);
+                return IKnight.Attributes(
+                    attributes[0],
                     attributes[1],
                     attributes[2],
                     attributes[3],
                     attributes[4],
                     attributes[5],
                     attributes[6]
-            );
+                );
+            }
         }
+        // Fallback to 12s
+        return IKnight.Attributes(12, 12, 12, 12, 12, 12, 12);
     }
 
     function addNameData(
