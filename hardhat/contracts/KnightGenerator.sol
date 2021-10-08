@@ -29,8 +29,8 @@ contract KnightGenerator is Ownable, IKnightGenerator {
         uint seed
     ) external override returns (string memory, IKnight.Gender, IKnight.Race, uint16) {
         require(msg.sender == knightContractAddress, "Only calls from knightContract allowed!");
-        IKnight.Gender gender = _getRandomKnightGender(uint(keccak256(abi.encode(seed, 1))));
-        IKnight.Race race = _getRandomKnightRace(uint(keccak256(abi.encode(seed, 2))));
+        IKnight.Race race = _getRandomKnightRace(uint(keccak256(abi.encode(seed, 1))));
+        IKnight.Gender gender = _getRandomKnightGender(race, uint(keccak256(abi.encode(seed, 2))));
         string memory name = _getRandomKnightName(
             gender,
             race,
@@ -45,43 +45,36 @@ contract KnightGenerator is Ownable, IKnightGenerator {
         IKnight.Race race
     ) external override returns (IKnight.Attributes memory) {
         require(msg.sender == knightContractAddress, "Only calls from knightContract allowed!");
-        uint attempts;
-        while (attempts < 3) {
-            uint8[7] memory attributes;
-            attempts++;
-            uint sum;
-            for (uint i = 1;i <= 6;i++) {
-                uint newSeed = uint(keccak256(abi.encode(seed, i + (attempts * 7))));
-                if (i == 1 || ((sum / i > 10) && (sum / i < 13))) {
-                    attributes[i - 1] = uint8(Dice.rollDiceSet(3, 6, newSeed));
-                } else {
-                    Dice.DiceBiasDirections diceBiasDirection = (sum / i < 10)
-                    ? Dice.DiceBiasDirections.Up
-                    : Dice.DiceBiasDirections.Down;
-                    attributes[i - 1] = uint8(Dice.rollDiceSetBiased(3, 5, 6, newSeed, diceBiasDirection));
-                }
-                sum += attributes[i - 1];
-            }
-            if (sum >= 82 || sum <= 65) {
-                // Not possible to hit 84
-                continue;
+        uint8[7] memory attributes;
+        uint sum;
+        for (uint i = 1;i <= 6;i++) {
+            if (i == 1 || ((sum / i > 10) && (sum / i < 13))) {
+                attributes[i - 1] = uint8(Dice.rollDiceSet(3, 6, seed));
             } else {
-                attributes[6] = uint8(84 - sum);
-                _shuffleAttributes(attributes, uint(keccak256(abi.encode(seed, attributes[0], attributes[6]))));
-                _sortAttributes(attributes, race);
-                return IKnight.Attributes(
-                    attributes[0],
-                    attributes[1],
-                    attributes[2],
-                    attributes[3],
-                    attributes[4],
-                    attributes[5],
-                    attributes[6]
-                );
+                Dice.DiceBiasDirections diceBiasDirection = (sum / i < 10)
+                ? Dice.DiceBiasDirections.Up
+                : Dice.DiceBiasDirections.Down;
+                attributes[i - 1] = uint8(Dice.rollDiceSetBiased(3, 6, 6, seed, diceBiasDirection));
             }
+            sum += attributes[i - 1];
         }
-        // Fallback to 12s
-        return IKnight.Attributes(12, 12, 12, 12, 12, 12, 12);
+        if (sum >= 82 || sum <= 65) {
+            // Not possible to hit 84
+            return IKnight.Attributes(0, 0, 0, 0, 0, 0, 0);
+        } else {
+            attributes[6] = uint8(84 - sum);
+            _shuffleAttributes(attributes, uint(keccak256(abi.encode(seed, attributes[0], attributes[6]))));
+            _sortAttributes(attributes, race);
+            return IKnight.Attributes(
+                attributes[0],
+                attributes[1],
+                attributes[2],
+                attributes[3],
+                attributes[4],
+                attributes[5],
+                attributes[6]
+            );
+        }
     }
 
     function addNameData(
@@ -209,10 +202,6 @@ contract KnightGenerator is Ownable, IKnightGenerator {
         }
     }
 
-    function destroy() external onlyOwner {
-        selfdestruct(payable(msg.sender));
-    }
-
     function _getRandomKnightName(
         IKnight.Gender gender,
         IKnight.Race race,
@@ -278,26 +267,29 @@ contract KnightGenerator is Ownable, IKnightGenerator {
     }
 
     function _getRandomKnightRace(uint seed) private pure returns (IKnight.Race) {
-        uint raceRandomInt = UniformRandomNumber.uniform(seed, 1000) + 1;
-        if (raceRandomInt >= 896 && raceRandomInt <= 910) {
+        uint raceRandomInt = UniformRandomNumber.uniform(seed, 100) + 1;
+        if (raceRandomInt >= 71 && raceRandomInt <= 80) {
             return IKnight.Race.Dwarf;
-        } else if (raceRandomInt >= 911 && raceRandomInt <= 925) {
+        } else if (raceRandomInt >= 81 && raceRandomInt <= 88) {
             return IKnight.Race.Orc;
-        } else if (raceRandomInt >= 926 && raceRandomInt <= 940) {
+        } else if (raceRandomInt >= 89 && raceRandomInt <= 92) {
             return IKnight.Race.Ogre;
-        } else if (raceRandomInt >= 941 && raceRandomInt <= 955) {
+        } else if (raceRandomInt >= 93 && raceRandomInt <= 95) {
             return IKnight.Race.Elf;
-        } else if (raceRandomInt >= 956 && raceRandomInt <= 970) {
+        } else if (raceRandomInt >= 96 && raceRandomInt <= 97) {
             return IKnight.Race.Halfling;
-        } else if (raceRandomInt >= 971 && raceRandomInt <= 985) {
+        } else if (raceRandomInt == 98) {
             return IKnight.Race.Undead;
-        } else if (raceRandomInt >= 986 && raceRandomInt <= 1000) {
+        } else if (raceRandomInt >= 99 && raceRandomInt <= 100) {
             return IKnight.Race.Gnome;
         }
         return IKnight.Race.Human;
     }
 
-    function _getRandomKnightGender(uint seed) private pure returns (IKnight.Gender) {
+    function _getRandomKnightGender(IKnight.Race race, uint seed) private pure returns (IKnight.Gender) {
+        if (race == IKnight.Race.Undead || race == IKnight.Race.Ogre || race == IKnight.Race.Gnome) {
+            return IKnight.Gender.M;
+        }
         uint genderRandomInt = UniformRandomNumber.uniform(seed, 10);
         return genderRandomInt >= 8 ? IKnight.Gender.F : IKnight.Gender.M;
     }
@@ -395,6 +387,10 @@ contract KnightGenerator is Ownable, IKnightGenerator {
             return uint16(0);
         }
         return uint16(UniformRandomNumber.uniform(seed, totalActivePortraits));
+    }
+
+    function destroy() external onlyOwner {
+        selfdestruct(payable(msg.sender));
     }
 
 }

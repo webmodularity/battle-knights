@@ -5,6 +5,11 @@
 // Runtime Environment's members available in the global scope.
 const hre = require("hardhat");
 const deployHelper = require("./deployAddressHelper");
+const gameEnums = require("./gameEnums");
+// Test data
+const testMaleNames = ["Rory", "Dan", "Cody", "Phil", "Alvaro"];
+const testFemaleNames = ["Colette", "Celeste", "Ellie", "Eva"];
+const testTitles = ["the Rogue", "the Patient", "the Viking", "the Crusher", "the Tainted", "the Crusader"];
 
 async function main() {
     // Hardhat always runs the compile task when running scripts with its command
@@ -14,18 +19,15 @@ async function main() {
     // manually to make sure everything is compiled
     // await hre.run('compile');
 
-    // We get the contract to deploy
-    const Knight = await hre.ethers.getContractAt("Knight", deployHelper.knightAddress);
+    const KnightGenerator = await hre.ethers.getContractAt("KnightGenerator", deployHelper.knightGeneratorAddress);
     const {deployer, syncer} = await hre.ethers.getNamedSigners();
-    const mintTx = await Knight.connect(deployer).generateKnight(2);
-    //const mintReceipt = await mintTx.wait();
-    //const mintRequestId = mintReceipt.events;
-    //console.log(mintRequestId);
+    for (let raceCounter = 0;raceCounter < gameEnums.races.enum.length;raceCounter++) {
+        await KnightGenerator.connect(deployer).addNameData(gameEnums.genders.findIndex("M"), raceCounter, testMaleNames);
+        await KnightGenerator.connect(deployer).addNameData(gameEnums.genders.findIndex("F"), raceCounter, testFemaleNames);
+        await KnightGenerator.connect(deployer).addTitleData(raceCounter, testTitles);
+    }
 
-
-    //const knightName = await Knight.getName(1);
-
-    console.log("Knight generate transaction started");
+    console.log("Knight names/titles seeded to Knight Generator");
 }
 
 // We recommend this pattern to be able to use async/await everywhere

@@ -4,6 +4,7 @@
 // When running the script with `npx hardhat run <script>` you'll find the Hardhat
 // Runtime Environment's members available in the global scope.
 const hre = require("hardhat");
+const deployHelper = require("./deployAddressHelper");
 
 async function main() {
     // Hardhat always runs the compile task when running scripts with its command
@@ -14,8 +15,8 @@ async function main() {
     // await hre.run('compile');
 
     // We get the contract to deploy
-    const Knight = await hre.ethers.getContractAt("Knight", "0x01fF43C64D1130d2C851b24e10b4f97f2cc2d650");
-    const KnightGenerator = await hre.ethers.getContractAt("KnightGenerator", "0x13cc52DAdA4bcd01a168c19A15A841E1F36B6eD9");
+    const Knight = await hre.ethers.getContractAt("Knight", deployHelper.knightAddress);
+    const KnightGenerator = await hre.ethers.getContractAt("KnightGenerator", deployHelper.knightGeneratorAddress);
     const {deployer, syncer} = await hre.ethers.getNamedSigners();
     const destroyTx = await Knight.connect(deployer).destroy();
     const destroy2Tx = await KnightGenerator.connect(deployer).destroy();
