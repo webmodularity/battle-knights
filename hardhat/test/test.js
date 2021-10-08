@@ -2,12 +2,12 @@ const { expect } = require("chai");
 const { ethers } = require("hardhat");
 
 const gameEnums = require("../scripts/gameEnums");
+const seedNames = require("../scripts/seedNames");
+const seedTitles = require("../scripts/seedTitles");
 
-let knightContract, knightGeneratorContract, battleContract, linkToken, vrfCoordinatorMock;
+let knightContract, knightGeneratorContract, linkToken, vrfCoordinatorMock;
 const testKnightAmount = 25;
 // Test data
-const testMaleNames = ["Rory", "Dan", "Cody", "Phil", "Alvaro"];
-const testFemaleNames = ["Colette", "Celeste", "Ellie", "Eva"];
 const testTitles = ["the Rogue", "the Patient", "the Viking", "the Crusher", "the Tainted", "the Crusader"];
 const testMalePortraits = ["maKJHSYYSUYJSS", "maIUYUYUYUY", "maGHUDFGHSVBWY", "maHGTXBWSKJDG", "maHDFTSDFSHSC"];
 const testFemalePortraits = ["feKJHSYYSUYJSS", "feIUYUYUYUY", "feGHUDFGHSVBWY", "feHGTXBWSKJDG", "feHDFTSDFSHSC"];
@@ -31,84 +31,96 @@ describe("Battle Knights", function () {
         await knightGeneratorContract.addNameData(
             gameEnums.genders.findIndex("M"),
             i,
-            testMaleNames
+            seedNames[gameEnums.races.enum[i]]["M"]
         );
-        await knightGeneratorContract.addNameData(
-            gameEnums.genders.findIndex("F"),
-            i,
-            testFemaleNames
-        );
-        await knightGeneratorContract.addTitleData(i, testTitles);
+        if (gameEnums.races.enum[i] != "Undead" && gameEnums.races.enum[i] != "Ogre") {
+          await knightGeneratorContract.addNameData(
+              gameEnums.genders.findIndex("F"),
+              i,
+              seedNames[gameEnums.races.enum[i]]["F"]
+          );
+        }
+        await knightGeneratorContract.addTitleData(i, seedTitles[gameEnums.races.enum[i]]);
         await knightContract.addPortraitData(
             gameEnums.genders.findIndex("M"),
             i,
             testMalePortraits
         );
-        await knightContract.addPortraitData(
-            gameEnums.genders.findIndex("F"),
-            i,
-            testFemalePortraits
-        );
+        if (gameEnums.races.enum[i] != "Undead" && gameEnums.races.enum[i] != "Ogre") {
+          await knightContract.addPortraitData(
+              gameEnums.genders.findIndex("F"),
+              i,
+              testFemalePortraits
+          );
+        }
         expect(await knightGeneratorContract.getNamesCount(
             gameEnums.genders.findIndex("M"),
             i
-        )).to.equal(5);
-        expect(await knightGeneratorContract.getNamesCount(
-            gameEnums.genders.findIndex("F"),
-            i
-        )).to.equal(4);
-        expect(await knightGeneratorContract.getTitlesCount(i)).to.equal(6);
+        )).to.equal(seedNames[gameEnums.races.enum[i]]["M"].length);
+        if (gameEnums.races.enum[i] != "Undead" && gameEnums.races.enum[i] != "Ogre") {
+          expect(await knightGeneratorContract.getNamesCount(
+              gameEnums.genders.findIndex("F"),
+              i
+          )).to.equal(seedNames[gameEnums.races.enum[i]]["F"].length);
+        }
+        expect(await knightGeneratorContract.getTitlesCount(i)).to.equal(seedTitles[gameEnums.races.enum[i]].length);
         expect(await knightGeneratorContract.getActivePortraitsCount(
             gameEnums.genders.findIndex("M"),
             i
         )).to.equal(5);
-        expect(await knightGeneratorContract.getActivePortraitsCount(
-            gameEnums.genders.findIndex("F"),
-            i
-        )).to.equal(5);
+        if (gameEnums.races.enum[i] != "Undead" && gameEnums.races.enum[i] != "Ogre") {
+          expect(await knightGeneratorContract.getActivePortraitsCount(
+              gameEnums.genders.findIndex("F"),
+              i
+          )).to.equal(5);
+        }
       }
     });
 
     it("Should remove a random NAME from each race/gender", async function () {
       for (let i = 0;i < gameEnums.races.enum.length;i++) {
-        await knightGeneratorContract.removeNameData(
-            gameEnums.genders.findIndex("F"),
-            i,
-            testFemaleNames[Math.floor(Math.random() * testFemaleNames.length)]
-        );
-        expect(await knightGeneratorContract.getNamesCount(
-            gameEnums.genders.findIndex("F"),
-            i
-        )).to.equal(testFemaleNames.length - 1);
+        if (gameEnums.races.enum[i] != "Undead" && gameEnums.races.enum[i] != "Ogre") {
+          await knightGeneratorContract.removeNameData(
+              gameEnums.genders.findIndex("F"),
+              i,
+              seedNames[gameEnums.races.enum[i]]["F"][Math.floor(Math.random() * seedNames[gameEnums.races.enum[i]]["F"].length)]
+          );
+          expect(await knightGeneratorContract.getNamesCount(
+              gameEnums.genders.findIndex("F"),
+              i
+          )).to.equal(seedNames[gameEnums.races.enum[i]]["F"].length - 1);
+        }
         await knightGeneratorContract.removeNameData(
             gameEnums.genders.findIndex("M"),
             i,
-            testMaleNames[Math.floor(Math.random() * testMaleNames.length)]);
+            seedNames[gameEnums.races.enum[i]]["M"][Math.floor(Math.random() * seedNames[gameEnums.races.enum[i]]["M"].length)]);
         expect(await knightGeneratorContract.getNamesCount(
             gameEnums.genders.findIndex("M"),
             i
-        )).to.equal(testMaleNames.length - 1);
+        )).to.equal(seedNames[gameEnums.races.enum[i]]["M"].length - 1);
       }
     });
 
     it("Should remove a random TITLE from each race", async function () {
       for (let i = 0;i < gameEnums.races.enum.length;i++) {
-        await knightGeneratorContract.removeTitleData(i, testTitles[Math.floor(Math.random() * testTitles.length)]);
-        expect(await knightGeneratorContract.getTitlesCount(i)).to.equal(testTitles.length - 1);
+        await knightGeneratorContract.removeTitleData(i, seedTitles[gameEnums.races.enum[i]][Math.floor(Math.random() * seedTitles[gameEnums.races.enum[i]].length)]);
+        expect(await knightGeneratorContract.getTitlesCount(i)).to.equal(seedTitles[gameEnums.races.enum[i]].length - 1);
       }
     });
 
     it("Should remove a random ACTIVE PORTRAIT from each race/gender", async function () {
       for (let i = 0;i < gameEnums.races.enum.length;i++) {
-        await knightGeneratorContract.removeActivePortraitIndex(
-            gameEnums.genders.findIndex("F"),
-            i,
-            Math.floor(Math.random() * testFemalePortraits.length)
-        );
-        expect(await knightGeneratorContract.getActivePortraitsCount(
-            gameEnums.genders.findIndex("F"),
-            i
-        )).to.equal(testFemalePortraits.length - 1);
+        if (gameEnums.races.enum[i] != "Undead" && gameEnums.races.enum[i] != "Ogre") {
+          await knightGeneratorContract.removeActivePortraitIndex(
+              gameEnums.genders.findIndex("F"),
+              i,
+              Math.floor(Math.random() * testFemalePortraits.length)
+          );
+          expect(await knightGeneratorContract.getActivePortraitsCount(
+              gameEnums.genders.findIndex("F"),
+              i
+          )).to.equal(testFemalePortraits.length - 1);
+        }
         await knightGeneratorContract.removeActivePortraitIndex(
             gameEnums.genders.findIndex("M"),
             i,
@@ -144,7 +156,7 @@ describe("Battle Knights", function () {
         //console.log(initTxRequestId);
         let attributesTxRequestId = initTxRequestId;
         let attributeAttempts = 0;
-        while (attributeAttempts < 5) {
+        while (attributeAttempts < 7) {
           attributeAttempts++;
           const attributesTx = await vrfCoordinatorMock.callBackWithRandomness(attributesTxRequestId, Math.floor(Math.random() * 10 ** 12), knightContract.address);
           const attributesTxReceipt = await attributesTx.wait();

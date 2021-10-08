@@ -5,7 +5,7 @@
 // Runtime Environment's members available in the global scope.
 const hre = require("hardhat");
 const deployHelper = require("./deployAddressHelper");
-const tokenId = 8;
+const tokenId = 1;
 
 async function main() {
     // Hardhat always runs the compile task when running scripts with its command

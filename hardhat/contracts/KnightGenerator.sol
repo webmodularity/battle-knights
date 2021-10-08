@@ -287,7 +287,7 @@ contract KnightGenerator is Ownable, IKnightGenerator {
     }
 
     function _getRandomKnightGender(IKnight.Race race, uint seed) private pure returns (IKnight.Gender) {
-        if (race == IKnight.Race.Undead || race == IKnight.Race.Ogre || race == IKnight.Race.Gnome) {
+        if (race == IKnight.Race.Undead || race == IKnight.Race.Ogre) {
             return IKnight.Gender.M;
         }
         uint genderRandomInt = UniformRandomNumber.uniform(seed, 10);

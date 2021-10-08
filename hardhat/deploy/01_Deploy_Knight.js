@@ -40,12 +40,6 @@ module.exports = async ({getNamedAccounts, deployments, getChainId}) => {
 
     // Make the Knight contract aware of the KnightGenerator contract
     await execute("Knight",{from: deployer}, 'changeKnightGeneratorContract', knightGenerator.address);
-
-    // log("Run the following command to fund contract with LINK:");
-    // log("npx hardhat fund-link --contract " + knight.address + " --network " + networkConfig[chainId]['name'] + additionalMessage);
-    // log("Then run RandomNumberConsumer contract with the following command");
-    // log("npx hardhat request-random-number --contract " + knight.address + " --network " + networkConfig[chainId]['name']);
-    // log("----------------------------------------------------")
 }
 
 module.exports.tags = ['all', 'knight'];

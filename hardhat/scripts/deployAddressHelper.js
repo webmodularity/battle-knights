@@ -1,4 +1,4 @@
 module.exports = {
-    knightAddress: "0xCbA5100D17438aFB80F26BE422913cB99D98dE5d",
-    knightGeneratorAddress: "0x4a48AD40764D5f742Fded1CdcE26844b775AbC2D"
+    knightAddress: "0x9fE46736679d2D9a65F0992F2272dE9f3c7fa6e0",
+    knightGeneratorAddress: "0xDc64a140Aa3E981100a9becA4E685f962f0cF6C9"
 };

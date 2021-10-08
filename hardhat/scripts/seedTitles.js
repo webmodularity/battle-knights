@@ -1,0 +1,10 @@
+module.exports = {
+    "Human": ["the Crusher","the Mighty","the Perilous","the Courageous","the Rogue","the Callus","the Slayer","the Assassin","the Executioner","the Enforcer","the Cutthroat","the Dashing","the Gallant","the Lionhearted","the Chivalrous","the Valorous","the Adventurous","the Audacious","the Confident","the Daring","the Valiant","the Fearless","the Reckless","the Strong","the Trickster","the Scoundrel","the Rascal","the Scalawag","the Cavalier","the Champion","the Challenger","the Defender","the Vanquisher","the Conqueror","the Barbaric","the Brutal","the Ferocious","the Vicious","the Fierce","the Jester","the Uncivilized","the Barbarian","the Impaler","the Piercer","the Merciless","the Ruthless","the Unrelenting","the Unyielding","the Hound","the Mountain","the Savage","the Bruiser","the Butcher","the Majestic","the Juggernaut","the Crusader","the Fiend"],
+    "Dwarf": ["the Crusher","the Callus","the Reckless","the Strong","the Fool Hearted","the Stubborn","the Bullheaded","the Uncompromising","the Platebender","the Ironcoat"],
+    "Orc": ["the Savage","the Bruiser","the Butcher","the Merciless","the Ruthless","the Uncivilized","the Barbarian","the Reckless","the Executioner","the Enforcer"],
+    "Ogre": ["the Carnivorous","the Gluttonous","the Devourer","the Bloodthirsty","the Savage","the Brutal","the Ferocious","the Disemboweler","the Eviscerator","the Ripper"],
+    "Elf": ["the Courageous","the Rogue","the Assassin","the Valorous","the Guardian","the Daring","the Valiant","the Champion","the Challenger","the Defender"],
+    "Halfling": ["the Rogue","the Adventurous","the Audacious","the Trickster","the Scoundrel","the Rascal","the Jester","the Fearless","the Reckless","the Daring"],
+    "Undead": ["the Nightbringer","the Wraith","the Merciless","the Banshee","the Dementor","the Malignant","the Forsaken","the Cannibal","the Executioner","the Loathing"],
+    "Gnome": ["the Greedy","the Scandalous","the Trickster","the Sneaky","the Gambler","the Slayer","the Rapacious","the Tight-Fisted","the Tinkerer","the Stingy"]
+};

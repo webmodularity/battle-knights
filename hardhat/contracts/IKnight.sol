@@ -1,9 +1,7 @@
 //SPDX-License-Identifier: UNLICENSED
 pragma solidity ^0.8.5;
 
-import "@openzeppelin/contracts/token/ERC721/extensions/IERC721Enumerable.sol";
-
-interface IKnight is IERC721Enumerable {
+interface IKnight {
 
     enum Gender {M, F}
     enum Race {Human, Dwarf, Orc, Ogre, Elf, Halfling, Undead, Gnome}
