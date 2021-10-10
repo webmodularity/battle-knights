@@ -1,6 +1,6 @@
 node_modules
 .env
-
+images/
 #Hardhat files
 cache
 artifacts

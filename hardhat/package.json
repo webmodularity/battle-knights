@@ -22,6 +22,8 @@
     "@chainlink/contracts": "^0.2.2",
     "@chainlink/token": "^1.1.0",
     "@openzeppelin/contracts": "^4.3.2",
-    "dotenv": "^10.0.0"
+    "dotenv": "^10.0.0",
+    "sharp": "^0.29.1",
+    "web3.storage": "^3.3.2"
   }
 }

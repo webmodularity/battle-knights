@@ -36,5 +36,6 @@ interface IKnight {
 
     function addPortraitData(IKnight.Gender gender, IKnight.Race race, string[] calldata data) external;
     function getPortraitCid(IKnight.Gender gender, IKnight.Race race, uint16 portraitId) external view returns (string memory);
+    function updateTokenURI(uint tokenId,string calldata tokenUri) external;
 
 }

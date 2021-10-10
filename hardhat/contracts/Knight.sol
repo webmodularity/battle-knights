@@ -1,9 +1,8 @@
 //SPDX-License-Identifier: UNLICENSED
 pragma solidity ^0.8.5;
 
-//import "hardhat/console.sol";
 import "@chainlink/contracts/src/v0.8/VRFConsumerBase.sol";
-import "@openzeppelin/contracts/token/ERC721/extensions/ERC721Enumerable.sol";
+import "@openzeppelin/contracts/token/ERC721/extensions/ERC721URIStorage.sol";
 import "@openzeppelin/contracts/security/Pausable.sol";
 import "@openzeppelin/contracts/access/Ownable.sol";
 import "@openzeppelin/contracts/utils/Counters.sol";
@@ -11,9 +10,11 @@ import "./IKnight.sol";
 import "./IKnightGenerator.sol";
 
 
-contract Knight is ERC721Enumerable, Ownable, Pausable, IKnight, VRFConsumerBase {
+contract Knight is ERC721URIStorage, Ownable, Pausable, IKnight, VRFConsumerBase {
     using Counters for Counters.Counter;
     Counters.Counter private _tokenIds;
+    Counters.Counter private _totalKnights;
+    Counters.Counter private _deadKnights;
     // Store Knight Metadata on chain
     mapping(uint256 => IKnight.SKnight) private knights;
     // VRF Request mapping to tokenId
@@ -31,7 +32,7 @@ contract Knight is ERC721Enumerable, Ownable, Pausable, IKnight, VRFConsumerBase
     event KnightMinted(uint indexed tokenId);
 
     constructor(address _vrfCoordinator, address _link, bytes32 _keyHash, uint _fee)
-        ERC721("Battle Knights Test", "KNGHT-TEST")
+        ERC721("Battle Knights", "KNIGHT")
         VRFConsumerBase(_vrfCoordinator, _link)
     {
         vrfKeyHash = _keyHash;
@@ -40,6 +41,10 @@ contract Knight is ERC721Enumerable, Ownable, Pausable, IKnight, VRFConsumerBase
 
     function changeKnightGeneratorContract(address knightGeneratorContractAddress) external onlyOwner {
         knightGeneratorContract = IKnightGenerator(knightGeneratorContractAddress);
+    }
+
+    function updateTokenURI(uint tokenId,string calldata tokenUri) external override onlyOwner {
+        _setTokenURI(tokenId, tokenUri);
     }
 
     function addPortraitData(
@@ -90,6 +95,7 @@ contract Knight is ERC721Enumerable, Ownable, Pausable, IKnight, VRFConsumerBase
         uint tokenId = _tokenIds.current();
         // Mint Knight
         _mint(msg.sender, tokenId);
+        _totalKnights.increment();
         // Init empty SKnight for this tokenId
         knights[tokenId] = SKnight(
             "",
@@ -136,6 +142,16 @@ contract Knight is ERC721Enumerable, Ownable, Pausable, IKnight, VRFConsumerBase
         return knights[tokenId].isDead;
     }
 
+    function getIsMinting(uint256 tokenId) public view returns (bool) {
+        require(_exists(tokenId));
+        return knights[tokenId].isMinting;
+    }
+
+    function getPortrait(uint256 tokenId) public view returns (string memory) {
+        require(_exists(tokenId));
+        return getPortraitCid(knights[tokenId].gender, knights[tokenId].race, knights[tokenId].portraitId);
+    }
+
     /**
      * Callback function used by VRF Coordinator
      */
@@ -178,11 +194,21 @@ contract Knight is ERC721Enumerable, Ownable, Pausable, IKnight, VRFConsumerBase
         }
     }
 
+    function totalSupply() external view returns (uint256) {
+        return _totalKnights.current();
+    }
+
+    function _burn(uint256 tokenId) internal virtual override {
+        super._burn(tokenId);
+
+        _totalKnights.decrement();
+    }
+
     function _beforeTokenTransfer(
         address from,
         address to,
         uint256 tokenId
-    ) internal virtual override(ERC721Enumerable) {
+    ) internal virtual override(ERC721) {
         super._beforeTokenTransfer(from, to, tokenId);
 
         require(!paused(), "Transfers paused");

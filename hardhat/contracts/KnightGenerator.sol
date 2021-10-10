@@ -1,7 +1,6 @@
 //SPDX-License-Identifier: UNLICENSED
 pragma solidity ^0.8.5;
 
-import "hardhat/console.sol";
 import "@openzeppelin/contracts/access/Ownable.sol";
 import "./IKnightGenerator.sol";
 import "./lib/UniformRandomNumber.sol";
@@ -49,12 +48,20 @@ contract KnightGenerator is Ownable, IKnightGenerator {
         uint sum;
         for (uint i = 1;i <= 6;i++) {
             if (i == 1 || ((sum / i > 10) && (sum / i < 13))) {
-                attributes[i - 1] = uint8(Dice.rollDiceSet(3, 6, seed));
+                attributes[i - 1] = uint8(Dice.rollDiceSet(3, 6, uint(keccak256(abi.encode(seed, i)))));
             } else {
                 Dice.DiceBiasDirections diceBiasDirection = (sum / i < 10)
                 ? Dice.DiceBiasDirections.Up
                 : Dice.DiceBiasDirections.Down;
-                attributes[i - 1] = uint8(Dice.rollDiceSetBiased(3, 6, 6, seed, diceBiasDirection));
+                attributes[i - 1] = uint8(
+                    Dice.rollDiceSetBiased(
+                        3,
+                        5,
+                        6,
+                        uint(keccak256(abi.encode(seed, i))),
+                        diceBiasDirection
+                    )
+                );
             }
             sum += attributes[i - 1];
         }

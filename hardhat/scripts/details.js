@@ -17,6 +17,7 @@ async function main() {
 
     // We get the contract to deploy
     const Knight = await hre.ethers.getContractAt("Knight", deployHelper.knightAddress);
+    const KnightGenerator = await hre.ethers.getContractAt("KnightGenerator", deployHelper.knightGeneratorAddress);
     // const {deployer, syncer} = await hre.ethers.getNamedSigners();
     // const mintTx = await Knight.connect(deployer).mint();
     //const mintReceipt = await mintTx.wait();
@@ -28,7 +29,6 @@ async function main() {
     const knightGender = await Knight.getGender(tokenId);
     const knightRace = await Knight.getRace(tokenId);
     const knightAttributes = await  Knight.getAttributes(tokenId);
-
 
     console.log("Name: " + knightName);
     console.log("Gender: " + knightGender);

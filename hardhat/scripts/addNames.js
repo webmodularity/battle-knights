@@ -6,10 +6,9 @@
 const hre = require("hardhat");
 const deployHelper = require("./deployAddressHelper");
 const gameEnums = require("./gameEnums");
-// Test data
-const testMaleNames = ["Rory", "Dan", "Cody", "Phil", "Alvaro"];
-const testFemaleNames = ["Colette", "Celeste", "Ellie", "Eva"];
-const testTitles = ["the Rogue", "the Patient", "the Viking", "the Crusher", "the Tainted", "the Crusader"];
+const seedNames = require("./seedNames");
+const seedTitles = require("./seedTitles");
+
 
 async function main() {
     // Hardhat always runs the compile task when running scripts with its command
@@ -22,9 +21,55 @@ async function main() {
     const KnightGenerator = await hre.ethers.getContractAt("KnightGenerator", deployHelper.knightGeneratorAddress);
     const {deployer, syncer} = await hre.ethers.getNamedSigners();
     for (let raceCounter = 0;raceCounter < gameEnums.races.enum.length;raceCounter++) {
-        await KnightGenerator.connect(deployer).addNameData(gameEnums.genders.findIndex("M"), raceCounter, testMaleNames);
-        await KnightGenerator.connect(deployer).addNameData(gameEnums.genders.findIndex("F"), raceCounter, testFemaleNames);
-        await KnightGenerator.connect(deployer).addTitleData(raceCounter, testTitles);
+        const maleNames = seedNames[gameEnums.races.enum[raceCounter]]["M"];
+        const maleNamesList = [];
+        if (maleNames.length > 35) {
+            // Split
+            while(maleNames.length) {
+                maleNamesList.push(maleNames.splice(0,35));
+            }
+        } else {
+            maleNamesList.push(maleNames);
+        }
+        for (let i = 0;i < maleNamesList.length;i++) {
+            await KnightGenerator.connect(deployer).addNameData(
+                gameEnums.genders.findIndex("M"),
+                raceCounter,
+                maleNamesList[i]
+            );
+        }
+        if (!gameEnums.races.isMaleOnly(raceCounter)) {
+            const femaleNames = seedNames[gameEnums.races.enum[raceCounter]]["F"];
+            const femaleNamesList = [];
+            if (femaleNames.length > 35) {
+                // Split
+                while(femaleNames.length) {
+                    femaleNamesList.push(femaleNames.splice(0,35));
+                }
+            } else {
+                femaleNamesList.push(femaleNames);
+            }
+            for (let i = 0;i < femaleNamesList.length;i++) {
+                await KnightGenerator.connect(deployer).addNameData(
+                    gameEnums.genders.findIndex("F"),
+                    raceCounter,
+                    femaleNamesList[i]
+                );
+            }
+        }
+        const titles = seedTitles[gameEnums.races.enum[raceCounter]];
+        const titlesList = [];
+        if (titles.length > 25) {
+            // Split
+            while(titles.length) {
+                titlesList.push(titles.splice(0,25));
+            }
+        } else {
+            titlesList.push(titles);
+        }
+        for (let i = 0;i < titlesList.length;i++) {
+            await KnightGenerator.connect(deployer).addTitleData(raceCounter, titlesList[i]);
+        }
     }
 
     console.log("Knight names/titles seeded to Knight Generator");

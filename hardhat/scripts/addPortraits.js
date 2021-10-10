@@ -6,9 +6,7 @@
 const hre = require("hardhat");
 const deployHelper = require("./deployAddressHelper");
 const gameEnums = require("./gameEnums");
-// Test data
-const testMalePortraits = ["maKJHSYYSUYJSS", "maIUYUYUYUY", "maGHUDFGHSVBWY", "maHGTXBWSKJDG", "maHDFTSDFSHSC"];
-const testFemalePortraits = ["feKJHSYYSUYJSS", "feIUYUYUYUY", "feGHUDFGHSVBWY", "feHGTXBWSKJDG", "feHDFTSDFSHSC"];
+const seedPortraits = require("./seedPortraits");
 
 async function main() {
     // Hardhat always runs the compile task when running scripts with its command
@@ -21,8 +19,42 @@ async function main() {
     const Knight = await hre.ethers.getContractAt("Knight", deployHelper.knightAddress);
     const {deployer, syncer} = await hre.ethers.getNamedSigners();
     for (let raceCounter = 0;raceCounter < gameEnums.races.enum.length;raceCounter++) {
-        await Knight.connect(deployer).addPortraitData(gameEnums.genders.findIndex("M"), raceCounter, testMalePortraits);
-        await Knight.connect(deployer).addPortraitData(gameEnums.genders.findIndex("F"), raceCounter, testFemalePortraits);
+        const malePortraits = seedPortraits[gameEnums.races.enum[raceCounter]]["M"];
+        const malePortraitsList = [];
+        if (malePortraits.length > 15) {
+            // Split
+            while(malePortraits.length) {
+                malePortraitsList.push(malePortraits.splice(0,15));
+            }
+        } else {
+            malePortraitsList.push(malePortraits);
+        }
+        for (let i = 0;i < malePortraitsList.length;i++) {
+            await Knight.connect(deployer).addPortraitData(
+                gameEnums.genders.findIndex("M"),
+                raceCounter,
+                malePortraitsList[i]
+            );
+        }
+        if (!gameEnums.races.isMaleOnly(raceCounter)) {
+            const femalePortraits = seedPortraits[gameEnums.races.enum[raceCounter]]["F"];
+            const femalePortraitsList = [];
+            if (femalePortraits.length > 15) {
+                // Split
+                while(femalePortraits.length) {
+                    femalePortraitsList.push(femalePortraits.splice(0,15));
+                }
+            } else {
+                femalePortraitsList.push(femalePortraits);
+            }
+            for (let i = 0;i < femalePortraitsList.length;i++) {
+                await Knight.connect(deployer).addPortraitData(
+                    gameEnums.genders.findIndex("F"),
+                    raceCounter,
+                    femalePortraitsList[i]
+                );
+            }
+        }
     }
 
     console.log("Knight portraits seeded to Knight");
