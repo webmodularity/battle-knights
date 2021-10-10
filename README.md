@@ -29,3 +29,41 @@ Placeholder art used for testing licensed for use:
 - [RPG Avatars 03](https://graphicriver.net/item/rpg-avatars-03/32737108)
 - [RPG Avatars 04](https://graphicriver.net/item/rpg-avatars-04/33007867)
 - [RPG Fantasy Avatars](https://graphicriver.net/item/rpg-fantasy-avatars/28251085)
+
+#### Quickstart
+Clone the and install the repo:
+```
+git clone https://github.com/webmodularity/battle-knights.git
+cd battle-knights/hardhat
+npm i
+```
+Deploy to testnets or mainnet:
+```
+npx hardhat --network localhost deploy
+```
+OR run a local hardhat node:
+```
+npx hardhat node
+```
+Modify deployAddressHelper.js to reflect localhost values:
+```
+vi scripts/deployAddressHelper.js
+```
+Do some setup:
+```
+npx hardhat --network localhost run scripts/addNames.js
+npx hardhat --network localhost run scripts/addPortraits.js
+```
+Run tests:
+```
+npx hardhat test
+```
+In a separate terminal launch the oracle:
+```
+npx hardhat --network localhost run scripts/listenKnightEvents.js
+```
+Mint:
+```
+npx hardhat --network localhost run scripts/mint.js
+```
+
