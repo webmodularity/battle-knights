@@ -6,7 +6,7 @@ Names are generated randomly on chain using a pool of names and titles that are 
 The contract will attempt to generate a unique name but will fallback to adding a roman numeral suffix in the case of too many attempts.
 
 ### Races & Gender
-The race and gender is determined randomly on chain and is influenced by the spawn %s listed in the table below.
+The race and gender are determined randomly on chain and influenced by the spawn %s listed in the table below.
 Humans are the most common (70%) and have randomly assigned attributes. The non-human races have a bonus and penalty attribute that modifies the order of their attributes. The bonus attribute will be the highest and the penalty attribute will be the lowest rolls.
 
 | Race         | Bonus Attribute  | Penalty Attribute | Spawn %   | Gender  |
@@ -21,7 +21,9 @@ Humans are the most common (70%) and have randomly assigned attributes. The non-
 | *Undead*     | Stamina          | Luck              | 1%        | M (100%)         |
 
 ### Attributes
-Attribute scores are generated randomly on chain (3d6) but capped at a sum of 84. No knights with super lucky rolls dominating. Each knight has a total of 84 attribute points - just distributed differently.
+Each knight is allocated 84 total attribute points. The knights attributes are rolled on chain using 3d6 for a possible range of 3-18 for each attribute score.
+Attribute distribution is influenced by race (a halfling will always have lowest roll as size) but each knight has a total of 84 attribute points regardless of race or luck.
+No knights with super lucky rolls dominating.
 
 
 | Attribute        | Range    | Combat Bonus                 |
