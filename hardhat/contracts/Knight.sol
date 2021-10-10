@@ -1,4 +1,4 @@
-//SPDX-License-Identifier: UNLICENSED
+//SPDX-License-Identifier: None
 pragma solidity ^0.8.5;
 
 import "@chainlink/contracts/src/v0.8/VRFConsumerBase.sol";

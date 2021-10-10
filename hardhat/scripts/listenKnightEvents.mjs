@@ -49,9 +49,11 @@ function buildMetadataFile(name, gender, race, attributes, portraitCid) {
             "max_value": 18
         });
     }
+    const descriptionGender = gameEnums.genders.enum[gender] == "M" ? "Male" : "Female";
     return {
         image: 'ipfs://' + portraitCid,
         name: name,
+        description: descriptionGender + " " + gameEnums.races.enum[race],
         attributes: attributesMetadata
     };
 

@@ -1,6 +1,6 @@
 module.exports = {
-    knightAddress: "0xAAA630B4b65394B200B993184CAc738b06F40Bb1",
-    knightGeneratorAddress: "0x92bB898F86a908d8110604795D464b0Bb9AaF191"
+    knightAddress: "0x93bD5353C567da7191210e0Ff3516e74081a2CDB",
+    knightGeneratorAddress: "0xF15243905A5D9EDEF1BdA2b706Dbd8B091231A91"
 };
 // localhost
 // module.exports = {
