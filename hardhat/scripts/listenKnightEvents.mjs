@@ -3,7 +3,7 @@ dotenv.config();
 import { Web3Storage, File } from 'web3.storage';
 import gameEnums from './gameEnums.js';
 import deployHelper from "./deployAddressHelper.js";
-//const tokenId = 7;
+//const tokenId = 3;
 const client = new Web3Storage({ token: process.env.WEB3STORAGE_TOKEN });
 
 async function main() {

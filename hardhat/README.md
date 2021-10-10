@@ -21,7 +21,7 @@ Humans are the most common (70%) and have randomly assigned attributes. The non-
 | *Undead*     | Stamina          | Luck              | 1%        | M (100%)         |
 
 ### Attributes
-Attribute scores are generated randomly on chain (3d6) but capped at a sum of 84. No knights with super lucky rolls dominating. Each knight has a total of 84 attribute point that are just distributed differently.
+Attribute scores are generated randomly on chain (3d6) but capped at a sum of 84. No knights with super lucky rolls dominating. Each knight has a total of 84 attribute points - just distributed differently.
 
 
 | Attribute        | Range    | Combat Bonus                 |
@@ -33,3 +33,8 @@ Attribute scores are generated randomly on chain (3d6) but capped at a sum of 84
 | *Dexterity*      | 3-18     | Initiative, Dodge            |
 | *Intelligence*   | 3-18     | Critical Hit, Counterattack  |
 | *Luck*           | 3-18     | Critical Hit, Initiative     |
+
+### Avatars
+Avatars are picked randomly on chain from a pool based on race and gender. Avatars are not unique to particular knights but randomly assigned.
+
+![Avatar](https://bafkreigwayrfx34btkugl6n22wrlqj7fkjfixkgbrscej7axybbjpqiife.ipfs.dweb.link/)
