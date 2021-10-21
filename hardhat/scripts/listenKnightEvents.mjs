@@ -3,13 +3,13 @@ dotenv.config();
 import { Web3Storage, File } from 'web3.storage';
 import gameEnums from './gameEnums.js';
 import deployHelper from "./deployAddressHelper.js";
-//const tokenId = 3;
+//const tokenId = 66;
 const client = new Web3Storage({ token: process.env.WEB3STORAGE_TOKEN });
 
 async function main() {
 
     const Knight = await hre.ethers.getContractAt("Knight", deployHelper.knightAddress);
-    //await updateMetdata(tokenId, Knight);
+    // await updateMetdata(tokenId, Knight);
     Knight.on('KnightMinted', async (tokenId) => {
         console.log("Updating metadata for Knight: " + tokenId);
         await updateMetdata(tokenId, Knight);
@@ -27,7 +27,9 @@ async function updateMetdata(tokenId, knightContract) {
     const buffer = Buffer.from(JSON.stringify(metadata));
     const cid = await client.put([new File([buffer], 'metadata.json')]);
     // Update tokenURI on chain
-    await knightContract.updateTokenURI(tokenId, "ipfs://" + cid + "/metadata.json");
+    const updateTx = await knightContract.updateTokenURI(tokenId, "ipfs://" + cid + "/metadata.json");
+    // Wait for it to be mined
+    await updateTx.wait();
 }
 
 function buildMetadataFile(name, gender, race, attributes, portraitCid) {
