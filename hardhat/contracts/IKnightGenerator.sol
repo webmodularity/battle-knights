@@ -24,5 +24,7 @@ interface IKnightGenerator {
     function getNamesCount(IKnight.Gender gender, IKnight.Race race) external view returns (uint);
     function getTitlesCount(IKnight.Race race) external view returns (uint);
     function getActivePortraitsCount(IKnight.Gender gender, IKnight.Race race) external view returns (uint);
+    function addPortraitData(IKnight.Gender gender, IKnight.Race race, string[] calldata data) external;
+    function getPortraitCid(IKnight.Gender gender, IKnight.Race race, uint16 portraitId) external view returns (string memory);
 
 }

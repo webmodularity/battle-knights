@@ -38,13 +38,13 @@ describe("Battle Knights", function () {
           );
         }
         await knightGeneratorContract.addTitleData(i, seedTitles[gameEnums.races.enum[i]]);
-        await knightContract.addPortraitData(
+        await knightGeneratorContract.addPortraitData(
             gameEnums.genders.findIndex("M"),
             i,
             seedPortraits[gameEnums.races.enum[i]]["M"]
         );
         if (!gameEnums.races.isMaleOnly(i)) {
-          await knightContract.addPortraitData(
+          await knightGeneratorContract.addPortraitData(
               gameEnums.genders.findIndex("F"),
               i,
               seedPortraits[gameEnums.races.enum[i]]["F"]
@@ -171,51 +171,27 @@ describe("Battle Knights", function () {
       }
     });
 
-
-    it("Should store attributes on chain that are between 3-18 and sum to 84", async function () {
+    it("Knight should have valid name, attributes, race, gender, and portrait", async function () {
       for (let i = 1;i <= testKnightAmount;i++) {
-        const knightAttributes = await knightContract.getAttributes(i);
+        const knight = await knightContract.getKnight(i);
+        // Name
+        expect(knight.name).to.not.be.empty;
+        // Attributes
         let knightAttributesSum = 0;
         for (let i = 0; i < 7; i++) {
-          expect(knightAttributes[i]).to.be.within(3, 18);
-          knightAttributesSum += knightAttributes[i];
+          expect(knight.attributes[i]).to.be.within(3, 18);
+          knightAttributesSum += knight.attributes[i];
         }
         expect(knightAttributesSum).to.equal(84);
-      }
-    });
-
-    it("Should store name on chain", async function () {
-      for (let i = 1;i <= testKnightAmount;i++) {
-        const knightName = await knightContract.getName(i);
-        expect(knightName).to.not.be.empty;
-      }
-    });
-
-    it("Should store race on chain", async function () {
-      for (let i = 1;i <= testKnightAmount;i++) {
-        const knightRace = await knightContract.getRace(i);
-        expect(knightRace).to.be.within(0, 7);
-      }
-    });
-
-    it("Should store gender on chain", async function () {
-      for (let i = 1;i <= testKnightAmount;i++) {
-        const knightGender = await knightContract.getGender(i);
-        expect(knightGender).to.be.within(0, 1);
-      }
-    });
-
-    it("Should store portrait IPFS cid on chain", async function () {
-      for (let i = 1;i <= testKnightAmount;i++) {
-        const knightPortraitCid = await knightContract.getPortrait(i);
+        // Race
+        expect(knight.race).to.be.within(0, 7);
+        // Gender
+        expect(knight.gender).to.be.within(0, 1);
+        // Portrait
+        const knightPortraitCid = await knightContract.getPortraitCid(knight.gender, knight.race, knight.portraitId);
         expect(knightPortraitCid).to.not.be.empty;
-      }
-    });
-
-    it("Should not be dead", async function () {
-      for (let i = 1;i <= testKnightAmount;i++) {
-        const knightIsDead = await knightContract.getIsDead(i);
-        expect(knightIsDead).to.be.false;
+        // isDead
+        expect(knight.isDead).to.be.false;
       }
     });
 

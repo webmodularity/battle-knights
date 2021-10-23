@@ -17,8 +17,8 @@ interface IKnight {
     }
 
     struct Record {
-        uint32 wins;
-        uint32 losses;
+        uint16 wins;
+        uint16 losses;
         uint16 kills;
         uint16 tournamentWins;
     }
@@ -34,7 +34,6 @@ interface IKnight {
         bool isMinting;
     }
 
-    function addPortraitData(IKnight.Gender gender, IKnight.Race race, string[] calldata data) external;
     function getPortraitCid(IKnight.Gender gender, IKnight.Race race, uint16 portraitId) external view returns (string memory);
     function updateTokenURI(uint tokenId,string calldata tokenUri) external;
 

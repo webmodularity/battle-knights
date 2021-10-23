@@ -19,6 +19,14 @@ contract KnightGenerator is Ownable, IKnightGenerator {
     // Store Active Portraits ids
     mapping(IKnight.Race => uint16[]) private malePortraitsActive;
     mapping(IKnight.Race => uint16[]) private femalePortraitsActive;
+    // Store Portrait IPFS CIDs
+    mapping(IKnight.Race => string[]) private malePortraitMap;
+    mapping(IKnight.Race => string[]) private femalePortraitMap;
+
+    modifier onlyKnightContract {
+        require(msg.sender == knightContractAddress, "Only calls from knightContract allowed!");
+        _;
+    }
 
     constructor(address _knightContractAddress) {
         knightContractAddress = _knightContractAddress;
@@ -26,8 +34,7 @@ contract KnightGenerator is Ownable, IKnightGenerator {
 
     function randomKnightInit(
         uint seed
-    ) external override returns (string memory, IKnight.Gender, IKnight.Race, uint16) {
-        require(msg.sender == knightContractAddress, "Only calls from knightContract allowed!");
+    ) external onlyKnightContract override returns (string memory, IKnight.Gender, IKnight.Race, uint16) {
         IKnight.Race race = _getRandomKnightRace(uint(keccak256(abi.encode(seed, 1))));
         IKnight.Gender gender = _getRandomKnightGender(race, uint(keccak256(abi.encode(seed, 2))));
         string memory name = _getRandomKnightName(
@@ -42,8 +49,7 @@ contract KnightGenerator is Ownable, IKnightGenerator {
     function randomKnightAttributes(
         uint seed,
         IKnight.Race race
-    ) external override returns (IKnight.Attributes memory) {
-        require(msg.sender == knightContractAddress, "Only calls from knightContract allowed!");
+    ) external onlyKnightContract override returns (IKnight.Attributes memory) {
         uint8[7] memory attributes;
         uint sum;
         for (uint i = 1;i <= 6;i++) {
@@ -82,6 +88,40 @@ contract KnightGenerator is Ownable, IKnightGenerator {
                 attributes[6]
             );
         }
+    }
+
+    function getPortraitCid(
+        IKnight.Gender gender,
+        IKnight.Race race,
+        uint16 portraitId
+    ) public view override returns (string memory) {
+        if (gender == IKnight.Gender.F) {
+            return femalePortraitMap[race][portraitId];
+        } else {
+            return malePortraitMap[race][portraitId];
+        }
+    }
+
+    function addPortraitData(
+        IKnight.Gender gender,
+        IKnight.Race race,
+        string[] calldata data
+    ) external override onlyOwner {
+        uint16[] memory newPortraitIds = new uint16[](data.length);
+        if (gender == IKnight.Gender.F) {
+            for (uint i = 0;i < data.length;i++) {
+                femalePortraitMap[race].push(data[i]);
+                newPortraitIds[i] = uint16(femalePortraitMap[race].length - 1);
+            }
+
+        } else {
+            for (uint i = 0;i < data.length;i++) {
+                malePortraitMap[race].push(data[i]);
+                newPortraitIds[i] = uint16(malePortraitMap[race].length - 1);
+            }
+        }
+        // Add these new CIDs to Active Portrait list of KnightGenerator
+        addActivePortraitIndex(gender, race, newPortraitIds);
     }
 
     function addNameData(

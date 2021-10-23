@@ -2,6 +2,8 @@
 pragma solidity ^0.8.5;
 
 import "@chainlink/contracts/src/v0.8/VRFConsumerBase.sol";
+import "@openzeppelin/contracts/token/ERC721/ERC721.sol";
+import "@openzeppelin/contracts/token/ERC721/extensions/ERC721Enumerable.sol";
 import "@openzeppelin/contracts/token/ERC721/extensions/ERC721URIStorage.sol";
 import "@openzeppelin/contracts/security/Pausable.sol";
 import "@openzeppelin/contracts/access/Ownable.sol";
@@ -9,12 +11,9 @@ import "@openzeppelin/contracts/utils/Counters.sol";
 import "./IKnight.sol";
 import "./IKnightGenerator.sol";
 
-
-contract Knight is ERC721URIStorage, Ownable, Pausable, IKnight, VRFConsumerBase {
+contract Knight is ERC721, ERC721Enumerable, ERC721URIStorage, Ownable, Pausable, IKnight, VRFConsumerBase {
     using Counters for Counters.Counter;
     Counters.Counter private _tokenIds;
-    Counters.Counter private _totalKnights;
-    Counters.Counter private _deadKnights;
     // Store Knight Metadata on chain
     mapping(uint256 => IKnight.SKnight) private knights;
     // VRF Request mapping to tokenId
@@ -22,9 +21,6 @@ contract Knight is ERC721URIStorage, Ownable, Pausable, IKnight, VRFConsumerBase
     mapping(uint => uint8) private randomAttributeAttempts;
     uint vrfFee;
     bytes32 vrfKeyHash;
-    // Store Portrait IPFS CIDs
-    mapping(IKnight.Race => string[]) private malePortraitMap;
-    mapping(IKnight.Race => string[]) private femalePortraitMap;
     // Store current Character Name Generator Contract
     IKnightGenerator private knightGeneratorContract;
     // Events
@@ -47,38 +43,12 @@ contract Knight is ERC721URIStorage, Ownable, Pausable, IKnight, VRFConsumerBase
         _setTokenURI(tokenId, tokenUri);
     }
 
-    function addPortraitData(
-        IKnight.Gender gender,
-        IKnight.Race race,
-        string[] calldata data
-    ) external override onlyOwner {
-        uint16[] memory newPortraitIds = new uint16[](data.length);
-        if (gender == IKnight.Gender.F) {
-            for (uint i = 0;i < data.length;i++) {
-                femalePortraitMap[race].push(data[i]);
-                newPortraitIds[i] = uint16(femalePortraitMap[race].length - 1);
-            }
-
-        } else {
-            for (uint i = 0;i < data.length;i++) {
-                malePortraitMap[race].push(data[i]);
-                newPortraitIds[i] = uint16(malePortraitMap[race].length - 1);
-            }
-        }
-        // Add these new CIDs to Active Portrait list of KnightGenerator
-        knightGeneratorContract.addActivePortraitIndex(gender, race, newPortraitIds);
-    }
-
     function getPortraitCid(
         IKnight.Gender gender,
         IKnight.Race race,
         uint16 portraitId
     ) public view override returns (string memory) {
-        if (gender == IKnight.Gender.F) {
-            return femalePortraitMap[race][portraitId];
-        } else {
-            return malePortraitMap[race][portraitId];
-        }
+        return knightGeneratorContract.getPortraitCid(gender, race, portraitId);
     }
 
     function togglePause() external onlyOwner {
@@ -95,7 +65,6 @@ contract Knight is ERC721URIStorage, Ownable, Pausable, IKnight, VRFConsumerBase
         uint tokenId = _tokenIds.current();
         // Mint Knight
         _mint(msg.sender, tokenId);
-        _totalKnights.increment();
         // Init empty SKnight for this tokenId
         knights[tokenId] = SKnight(
             "",
@@ -117,39 +86,9 @@ contract Knight is ERC721URIStorage, Ownable, Pausable, IKnight, VRFConsumerBase
         _burn(tokenId);
     }
 
-    function getName(uint256 tokenId) public view returns (string memory) {
+    function getKnight(uint256 tokenId) public view returns (IKnight.SKnight memory) {
         require(_exists(tokenId));
-        return knights[tokenId].name;
-    }
-
-    function getRace(uint256 tokenId) public view returns (IKnight.Race) {
-        require(_exists(tokenId));
-        return knights[tokenId].race;
-    }
-
-    function getGender(uint256 tokenId) public view returns (IKnight.Gender) {
-        require(_exists(tokenId));
-        return knights[tokenId].gender;
-    }
-
-    function getAttributes(uint256 tokenId) public view returns (IKnight.Attributes memory) {
-        require(_exists(tokenId));
-        return knights[tokenId].attributes;
-    }
-
-    function getIsDead(uint256 tokenId) public view returns (bool) {
-        require(_exists(tokenId));
-        return knights[tokenId].isDead;
-    }
-
-    function getIsMinting(uint256 tokenId) public view returns (bool) {
-        require(_exists(tokenId));
-        return knights[tokenId].isMinting;
-    }
-
-    function getPortrait(uint256 tokenId) public view returns (string memory) {
-        require(_exists(tokenId));
-        return getPortraitCid(knights[tokenId].gender, knights[tokenId].race, knights[tokenId].portraitId);
+        return knights[tokenId];
     }
 
     /**
@@ -194,24 +133,34 @@ contract Knight is ERC721URIStorage, Ownable, Pausable, IKnight, VRFConsumerBase
         }
     }
 
-    function totalSupply() external view returns (uint256) {
-        return _totalKnights.current();
-    }
-
-    function _burn(uint256 tokenId) internal virtual override {
-        super._burn(tokenId);
-
-        _totalKnights.decrement();
-    }
-
-    function _beforeTokenTransfer(
-        address from,
-        address to,
-        uint256 tokenId
-    ) internal virtual override(ERC721) {
+    function _beforeTokenTransfer(address from, address to, uint256 tokenId)
+    internal
+    override(ERC721, ERC721Enumerable)
+    {
         super._beforeTokenTransfer(from, to, tokenId);
-
         require(!paused(), "Transfers paused");
+    }
+
+    function _burn(uint256 tokenId) internal override(ERC721, ERC721URIStorage) {
+        super._burn(tokenId);
+    }
+
+    function tokenURI(uint256 tokenId)
+    public
+    view
+    override(ERC721, ERC721URIStorage)
+    returns (string memory)
+    {
+        return super.tokenURI(tokenId);
+    }
+
+    function supportsInterface(bytes4 interfaceId)
+    public
+    view
+    override(ERC721, ERC721Enumerable)
+    returns (bool)
+    {
+        return super.supportsInterface(interfaceId);
     }
 
     function destroy() external onlyOwner {
