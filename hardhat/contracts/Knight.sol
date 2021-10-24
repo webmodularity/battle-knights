@@ -1,7 +1,6 @@
 //SPDX-License-Identifier: None
 pragma solidity ^0.8.5;
 
-import "@chainlink/contracts/src/v0.8/VRFConsumerBase.sol";
 import "@openzeppelin/contracts/token/ERC721/ERC721.sol";
 import "@openzeppelin/contracts/token/ERC721/extensions/ERC721Enumerable.sol";
 import "@openzeppelin/contracts/token/ERC721/extensions/ERC721URIStorage.sol";
@@ -10,33 +9,27 @@ import "@openzeppelin/contracts/access/Ownable.sol";
 import "@openzeppelin/contracts/utils/Counters.sol";
 import "./IKnight.sol";
 import "./IKnightGenerator.sol";
+import "./IRandomDispatcher.sol";
 
-contract Knight is ERC721, ERC721Enumerable, ERC721URIStorage, Ownable, Pausable, IKnight, VRFConsumerBase {
+contract Knight is ERC721, ERC721Enumerable, ERC721URIStorage, Ownable, Pausable, IKnight {
     using Counters for Counters.Counter;
     Counters.Counter private _tokenIds;
     // Store Knight Metadata on chain
     mapping(uint256 => IKnight.SKnight) private knights;
-    // VRF Request mapping to tokenId
-    mapping(bytes32 => uint) private randomRequestToTokenId;
     mapping(uint => uint8) private randomAttributeAttempts;
-    uint vrfFee;
-    bytes32 vrfKeyHash;
-    // Store current Character Name Generator Contract
     IKnightGenerator private knightGeneratorContract;
+    IRandomDispatcher private randomDispatcherContract;
     // Events
-    event RequestedRandomness(bytes32 requestId);
     event KnightMinted(uint indexed tokenId);
 
-    constructor(address _vrfCoordinator, address _link, bytes32 _keyHash, uint _fee)
-        ERC721("Battle Knights", "KNIGHT")
-        VRFConsumerBase(_vrfCoordinator, _link)
-    {
-        vrfKeyHash = _keyHash;
-        vrfFee = _fee;
-    }
+    constructor() ERC721("Battle Knights", "KNIGHT") {}
 
     function changeKnightGeneratorContract(address knightGeneratorContractAddress) external onlyOwner {
         knightGeneratorContract = IKnightGenerator(knightGeneratorContractAddress);
+    }
+
+    function changeRandomDispatcherContract(address randomDispatcherContractAddress) external onlyOwner {
+        randomDispatcherContract = IRandomDispatcher(randomDispatcherContractAddress);
     }
 
     function updateTokenURI(uint tokenId,string calldata tokenUri) external override onlyOwner {
@@ -60,7 +53,6 @@ contract Knight is ERC721, ERC721Enumerable, ERC721URIStorage, Ownable, Pausable
     }
 
     function mint() public {
-        require(LINK.balanceOf(address(this)) >= vrfFee, "Not enough LINK");
         _tokenIds.increment();
         uint tokenId = _tokenIds.current();
         // Mint Knight
@@ -76,9 +68,7 @@ contract Knight is ERC721, ERC721Enumerable, ERC721URIStorage, Ownable, Pausable
             false,
             true
         );
-        bytes32 randomRequestId = requestRandomness(vrfKeyHash, vrfFee);
-        emit RequestedRandomness(randomRequestId);
-        randomRequestToTokenId[randomRequestId] = tokenId;
+        randomDispatcherContract.requestRandomNumber(IRandomDispatcher.Destination.Knight, tokenId);
     }
 
     function burn(uint256 tokenId) public {
@@ -91,28 +81,26 @@ contract Knight is ERC721, ERC721Enumerable, ERC721URIStorage, Ownable, Pausable
         return knights[tokenId];
     }
 
-    /**
-     * Callback function used by VRF Coordinator
-     */
-    function fulfillRandomness(bytes32 requestId, uint256 randomness) internal override {
-        uint tokenId = randomRequestToTokenId[requestId];
+    function useRandomNumber(uint tokenId, uint randomness) external override {
+        require(msg.sender == address(randomDispatcherContract), "No access");
         if (tokenId > 0 && knights[tokenId].isMinting == true) {
             if (keccak256(abi.encodePacked(knights[tokenId].name)) == keccak256(abi.encodePacked(""))) {
                 // Init Knight
                 (knights[tokenId].name, knights[tokenId].gender, knights[tokenId].race, knights[tokenId].portraitId) =
                 knightGeneratorContract.randomKnightInit(randomness);
-                bytes32 randomRequestId = requestRandomness(vrfKeyHash, vrfFee);
-                randomRequestToTokenId[randomRequestId] = tokenId;
-                emit RequestedRandomness(randomRequestId);
+                // Start another random request
+                randomDispatcherContract.requestRandomNumber(IRandomDispatcher.Destination.Knight, tokenId);
             } else {
                 // Roll Attributes
                 knights[tokenId].attributes = knightGeneratorContract.randomKnightAttributes(
                     randomness,
-                    knights[tokenId].race
+                        knights[tokenId].race
                 );
+                randomAttributeAttempts[tokenId]++;
                 if (knights[tokenId].attributes.strength != 0) {
                     knights[tokenId].isMinting = false;
                     emit KnightMinted(tokenId);
+                    delete randomAttributeAttempts[tokenId];
                 } else {
                     // Reroll attributes, sum did not equal 84
                     if (randomAttributeAttempts[tokenId] > 3) {
@@ -122,14 +110,11 @@ contract Knight is ERC721, ERC721Enumerable, ERC721URIStorage, Ownable, Pausable
                         emit KnightMinted(tokenId);
                         delete randomAttributeAttempts[tokenId];
                     } else {
-                        bytes32 randomRequestId = requestRandomness(vrfKeyHash, vrfFee);
-                        randomRequestToTokenId[randomRequestId] = tokenId;
-                        emit RequestedRandomness(randomRequestId);
+                        // Start another random request
+                        randomDispatcherContract.requestRandomNumber(IRandomDispatcher.Destination.Knight, tokenId);
                     }
                 }
             }
-            // GC old request
-            delete randomRequestToTokenId[requestId];
         }
     }
 
